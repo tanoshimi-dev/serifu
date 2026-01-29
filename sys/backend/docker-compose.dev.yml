@@ -1,0 +1,84 @@
+services:
+    # PostgreSQL Database
+    postgres:
+        image: postgres:16-alpine
+        container_name: serifu_postgres_dev
+        restart: unless-stopped
+        environment:
+            POSTGRES_USER: serifu
+            POSTGRES_PASSWORD: serifu_password
+            POSTGRES_DB: serifu_db
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        ports:
+            - "5432:5432"
+        networks:
+            - serifu_network
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U serifu -d serifu_db"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    # PostgreSQL Admin (Adminer)
+    adminer:
+        image: adminer:latest
+        container_name: serifu_adminer_dev
+        restart: unless-stopped
+        environment:
+            ADMINER_DEFAULT_SERVER: postgres
+            ADMINER_DESIGN: nette
+        ports:
+            - "5050:8080"
+        networks:
+            - serifu_network
+        depends_on:
+            - postgres
+
+    # Backend API
+    backend:
+        build:
+            context: ./app
+            dockerfile: Dockerfile
+        container_name: serifu_backend_dev
+        restart: unless-stopped
+        environment:
+            - SERVER_PORT=8080
+            - GIN_MODE=debug
+            - ENVIRONMENT=development
+            - DB_HOST=postgres
+            - DB_PORT=5432
+            - DB_USER=serifu
+            - DB_PASSWORD=serifu_password
+            - DB_NAME=serifu_db
+            - DB_SSLMODE=disable
+            - DEFAULT_PAGE_SIZE=20
+            - MAX_PAGE_SIZE=100
+        ports:
+            - "8080:8080"
+        networks:
+            - serifu_network
+        depends_on:
+            postgres:
+                condition: service_healthy
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "wget",
+                    "--quiet",
+                    "--tries=1",
+                    "--spider",
+                    "http://localhost:8080/health",
+                ]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+
+networks:
+    serifu_network:
+        driver: bridge
+
+volumes:
+    postgres_data:
+        driver: local
