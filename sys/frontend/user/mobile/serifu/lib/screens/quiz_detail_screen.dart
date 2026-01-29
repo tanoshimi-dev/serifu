@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../api/api_client.dart';
 import '../models/quiz.dart';
+import '../repositories/answer_repository.dart';
 import '../theme/app_theme.dart';
 import 'feed_screen.dart';
 
@@ -18,11 +20,57 @@ class QuizDetailScreen extends StatefulWidget {
 class _QuizDetailScreenState extends State<QuizDetailScreen> {
   final TextEditingController _answerController = TextEditingController();
   static const int maxCharacters = 150;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
     _answerController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submitAnswer() async {
+    final content = _answerController.text.trim();
+    if (content.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your answer')),
+      );
+      return;
+    }
+
+    if (apiClient.userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login to submit an answer')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      await answerRepository.createAnswer(widget.quiz.id, content);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Answer submitted successfully!')),
+        );
+        _answerController.clear();
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FeedScreen(quiz: widget.quiz),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to submit: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   @override
@@ -56,12 +104,13 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
                 child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
               ),
               Text(
-                'Quiz ${widget.quiz.number}/${widget.quiz.totalQuizzes}',
+                widget.quiz.title,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
               const Icon(Icons.more_horiz, color: Colors.white, size: 24),
             ],
@@ -95,7 +144,7 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              widget.quiz.situation,
+              widget.quiz.description,
               style: const TextStyle(
                 color: AppTheme.textGray,
                 fontSize: 15,
@@ -128,6 +177,7 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
             controller: _answerController,
             maxLines: 5,
             maxLength: maxCharacters,
+            enabled: !_isSubmitting,
             decoration: InputDecoration(
               hintText: 'あなたの回答をここに入力...',
               hintStyle: const TextStyle(color: AppTheme.textLight),
@@ -200,25 +250,35 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
 
   Widget _buildSubmitButton() {
     return GestureDetector(
-      onTap: () {
-        // TODO: Submit answer
-      },
+      onTap: _isSubmitting ? null : _submitAnswer,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          gradient: AppTheme.primaryGradient,
+          gradient: _isSubmitting ? null : AppTheme.primaryGradient,
+          color: _isSubmitting ? Colors.grey : null,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Text(
-          'Submit Answer',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        child: _isSubmitting
+            ? const Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                ),
+              )
+            : const Text(
+                'Submit Answer',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
       ),
     );
   }

@@ -4,14 +4,21 @@ import '../theme/app_theme.dart';
 
 class AnswerCard extends StatelessWidget {
   final Answer answer;
+  final VoidCallback? onLike;
 
   const AnswerCard({
     super.key,
     required this.answer,
+    this.onLike,
   });
 
   @override
   Widget build(BuildContext context) {
+    final user = answer.user;
+    final avatarInitial = user?.avatarInitial ?? '?';
+    final username = user?.displayName ?? '@unknown';
+    final isLiked = answer.isLiked ?? false;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -34,13 +41,13 @@ class AnswerCard extends StatelessWidget {
               Container(
                 width: 40,
                 height: 40,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: AppTheme.primaryGradient,
                   shape: BoxShape.circle,
                 ),
                 child: Center(
                   child: Text(
-                    answer.avatarInitial,
+                    avatarInitial,
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -52,7 +59,7 @@ class AnswerCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  answer.username,
+                  username,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     color: AppTheme.textDark,
@@ -60,7 +67,7 @@ class AnswerCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '⭐ ${answer.likes}',
+                '⭐ ${answer.likeCount}',
                 style: const TextStyle(
                   color: AppTheme.likeRed,
                   fontSize: 14,
@@ -80,7 +87,7 @@ class AnswerCard extends StatelessWidget {
               ),
             ),
             child: Text(
-              answer.text,
+              answer.content,
               style: const TextStyle(
                 color: AppTheme.textDark,
                 fontSize: 15,
@@ -99,14 +106,15 @@ class AnswerCard extends StatelessWidget {
             child: Row(
               children: [
                 _ActionButton(
-                  icon: Icons.favorite,
-                  label: '${answer.likes}',
-                  color: AppTheme.textLight,
+                  icon: isLiked ? Icons.favorite : Icons.favorite_border,
+                  label: '${answer.likeCount}',
+                  color: isLiked ? AppTheme.likeRed : AppTheme.textLight,
+                  onTap: onLike,
                 ),
                 const SizedBox(width: 20),
                 _ActionButton(
                   icon: Icons.chat_bubble_outline,
-                  label: '${answer.comments}',
+                  label: '${answer.commentCount}',
                   color: AppTheme.textLight,
                 ),
                 const SizedBox(width: 20),
@@ -118,23 +126,6 @@ class AnswerCard extends StatelessWidget {
               ],
             ),
           ),
-          if (answer.topComment != null) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F3F5),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '💬 ${answer.topComment}',
-                style: const TextStyle(
-                  color: Color(0xFF495057),
-                  fontSize: 13,
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -145,29 +136,35 @@ class _ActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
+  final VoidCallback? onTap;
 
   const _ActionButton({
     required this.icon,
     required this.label,
     required this.color,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {},
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 14,
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 14,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

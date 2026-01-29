@@ -4,11 +4,15 @@ import '../theme/app_theme.dart';
 
 class QuizCard extends StatelessWidget {
   final Quiz quiz;
+  final int index;
+  final int total;
   final VoidCallback onTap;
 
   const QuizCard({
     super.key,
     required this.quiz,
+    required this.index,
+    required this.total,
     required this.onTap,
   });
 
@@ -44,7 +48,7 @@ class QuizCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'Quiz ${quiz.number}/${quiz.totalQuizzes}',
+                    'Quiz ${index + 1}/$total',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -52,6 +56,23 @@ class QuizCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (quiz.category != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.background,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      quiz.category!.name,
+                      style: const TextStyle(
+                        color: AppTheme.textGray,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 12),
@@ -76,7 +97,7 @@ class QuizCard extends StatelessWidget {
                     text: '場面: ',
                     style: TextStyle(fontWeight: FontWeight.w700),
                   ),
-                  TextSpan(text: quiz.situation),
+                  TextSpan(text: quiz.description),
                 ],
               ),
             ),

@@ -1,4 +1,4 @@
-package com.example.serifu
+package app.dev.serifu
 
 import io.flutter.embedding.android.FlutterActivity
 

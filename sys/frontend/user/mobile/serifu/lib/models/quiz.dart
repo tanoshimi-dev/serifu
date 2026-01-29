@@ -1,49 +1,87 @@
 class Quiz {
   final String id;
-  final int number;
-  final int totalQuizzes;
   final String title;
-  final String situation;
+  final String description;
   final String requirement;
+  final String? categoryId;
+  final Category? category;
+  final DateTime releaseDate;
+  final String status;
   final int answerCount;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   const Quiz({
     required this.id,
-    required this.number,
-    required this.totalQuizzes,
     required this.title,
-    required this.situation,
+    required this.description,
     required this.requirement,
+    this.categoryId,
+    this.category,
+    required this.releaseDate,
+    required this.status,
     required this.answerCount,
+    required this.createdAt,
+    required this.updatedAt,
   });
+
+  factory Quiz.fromJson(Map<String, dynamic> json) {
+    return Quiz(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      description: json['description'] as String? ?? '',
+      requirement: json['requirement'] as String? ?? '',
+      categoryId: json['category_id'] as String?,
+      category: json['category'] != null
+          ? Category.fromJson(json['category'] as Map<String, dynamic>)
+          : null,
+      releaseDate: DateTime.parse(json['release_date'] as String),
+      status: json['status'] as String,
+      answerCount: json['answer_count'] as int? ?? 0,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'description': description,
+        'requirement': requirement,
+        'category_id': categoryId,
+        'release_date': releaseDate.toIso8601String(),
+        'status': status,
+      };
 }
 
-final List<Quiz> sampleQuizzes = [
-  const Quiz(
-    id: '1',
-    number: 1,
-    totalQuizzes: 5,
-    title: '絶体絶命のヒーロー',
-    situation: '悪の組織のボスに追い詰められ、武器も力も尽きた主人公。しかし、背後の仲間たちを守るためにゆっくりと立ち上がった。',
-    requirement: '逆転の予感を感じさせる、最高にかっこいい「最後の一言」',
-    answerCount: 1234,
-  ),
-  const Quiz(
-    id: '2',
-    number: 2,
-    totalQuizzes: 5,
-    title: '100年後の再会',
-    situation: 'かつての恋人と、お互い幽霊（またはアンドロイド）になって100年ぶりに再会した。場所は廃墟となった思い出の公園。',
-    requirement: '最初に口にする、切なくて少しシュールな「挨拶」',
-    answerCount: 987,
-  ),
-  const Quiz(
-    id: '3',
-    number: 3,
-    totalQuizzes: 5,
-    title: '勇者の勘違い',
-    situation: '魔王の城に乗り込んだ勇者。しかし、扉を開けたら魔王がパジャマ姿でカップラーメンを食べていた。',
-    requirement: '気まずい空気の中で、勇者が振り絞って放った「第一声」',
-    answerCount: 1456,
-  ),
-];
+class Category {
+  final String id;
+  final String name;
+  final String? description;
+  final String? icon;
+  final String? color;
+  final int sortOrder;
+  final String status;
+
+  const Category({
+    required this.id,
+    required this.name,
+    this.description,
+    this.icon,
+    this.color,
+    required this.sortOrder,
+    required this.status,
+  });
+
+  factory Category.fromJson(Map<String, dynamic> json) {
+    return Category(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      description: json['description'] as String?,
+      icon: json['icon'] as String?,
+      color: json['color'] as String?,
+      sortOrder: json['sort_order'] as int? ?? 0,
+      status: json['status'] as String? ?? 'active',
+    );
+  }
+}

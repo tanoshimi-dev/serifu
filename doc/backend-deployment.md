@@ -163,6 +163,40 @@ docker exec serifu_postgres pg_dump -U serifu serifu_db > backup_$(date +%Y%m%d)
 cat backup.sql | docker exec -i serifu_postgres psql -U serifu -d serifu_db
 ```
 
+## Seed Data
+
+Sample data is available for development and testing.
+
+### Load Sample Data
+
+```bash
+# Development
+docker exec -i serifu_postgres_dev psql -U serifu -d serifu_db < app/seeds/seed_data.sql
+
+# Production (if needed for demo)
+docker exec -i serifu_postgres psql -U ${DB_USER} -d ${DB_NAME} < app/seeds/seed_data.sql
+```
+
+### Sample Data Contents
+
+| Table | Count | Description |
+|-------|-------|-------------|
+| Categories | 8 | Daily Life, Work, Love, Friends, Family, Humor, Philosophy, Motivation |
+| Users | 8 | Sample users with avatars and bios |
+| Quizzes | 14 | Various quiz prompts across categories |
+| Answers | 21 | Witty responses to quizzes |
+| Comments | 10 | Sample comments on answers |
+| Likes | 17 | Sample likes |
+| Follows | 10 | Sample follow relationships |
+
+### Clear Sample Data
+
+```bash
+docker exec -i serifu_postgres_dev psql -U serifu -d serifu_db -c "
+TRUNCATE follows, likes, comments, answers, quizzes, categories, users CASCADE;
+"
+```
+
 ## Troubleshooting
 
 ### Container won't start
