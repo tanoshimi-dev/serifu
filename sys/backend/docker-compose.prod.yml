@@ -9,7 +9,7 @@ services:
             POSTGRES_PASSWORD: ${DB_PASSWORD}
             POSTGRES_DB: ${DB_NAME}
         volumes:
-            - postgres_data:/var/lib/postgresql/data
+            - postgres_data_serifu:/var/lib/postgresql/data
         networks:
             - serifu_network
         healthcheck:
@@ -92,7 +92,7 @@ networks:
         driver: bridge
 
 volumes:
-    postgres_data:
+    postgres_data_serifu:
         driver: local
     nginx_logs:
         driver: local

@@ -9,7 +9,7 @@ services:
             POSTGRES_PASSWORD: serifu_password
             POSTGRES_DB: serifu_db
         volumes:
-            - postgres_data:/var/lib/postgresql/data
+            - postgres_data_serifu:/var/lib/postgresql/data
         ports:
             - "5432:5432"
         networks:
@@ -80,5 +80,5 @@ networks:
         driver: bridge
 
 volumes:
-    postgres_data:
+    postgres_data_serifu:
         driver: local
