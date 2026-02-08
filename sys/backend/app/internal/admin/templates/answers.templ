@@ -6,7 +6,7 @@ import (
 	"net/url"
 )
 
-templ AnswerList(adminName string, answers []database.Answer, search string, status string, page int, totalPages int, total int) {
+templ AnswerList(adminName string, answers []database.Answer, search string, status string, page int, totalPages int, total int, pageSize int) {
 	@Layout("回答", adminName) {
 		<div class="mb-8">
 			<h2 class="text-2xl font-bold text-gray-800">回答</h2>
@@ -71,7 +71,7 @@ templ AnswerList(adminName string, answers []database.Answer, search string, sta
 					}
 				</tbody>
 			</table>
-			@Pagination("/admin/answers", page, totalPages, answerFilterParams(search, status))
+			@Pagination("/admin/answers", page, totalPages, total, pageSize, answerFilterParams(search, status))
 		</div>
 	}
 }

@@ -6,7 +6,7 @@ import (
 	"net/url"
 )
 
-templ CategoryList(adminName string, categories []database.Category, search string, page int, totalPages int, total int) {
+templ CategoryList(adminName string, categories []database.Category, search string, page int, totalPages int, total int, pageSize int) {
 	@Layout("カテゴリ", adminName) {
 		<div class="flex items-center justify-between mb-8">
 			<div>
@@ -68,7 +68,7 @@ templ CategoryList(adminName string, categories []database.Category, search stri
 					}
 				</tbody>
 			</table>
-			@Pagination("/admin/categories", page, totalPages, searchParam(search))
+			@Pagination("/admin/categories", page, totalPages, total, pageSize, searchParam(search))
 		</div>
 	}
 }

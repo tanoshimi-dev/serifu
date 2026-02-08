@@ -6,7 +6,7 @@ import (
 	"net/url"
 )
 
-templ QuizList(adminName string, quizzes []database.Quiz, categories []database.Category, search string, status string, categoryID string, page int, totalPages int, total int) {
+templ QuizList(adminName string, quizzes []database.Quiz, categories []database.Category, search string, status string, categoryID string, page int, totalPages int, total int, pageSize int) {
 	@Layout("クイズ", adminName) {
 		<div class="flex items-center justify-between mb-8">
 			<div>
@@ -82,7 +82,7 @@ templ QuizList(adminName string, quizzes []database.Quiz, categories []database.
 					}
 				</tbody>
 			</table>
-			@Pagination("/admin/quizzes", page, totalPages, quizFilterParams(search, status, categoryID))
+			@Pagination("/admin/quizzes", page, totalPages, total, pageSize, quizFilterParams(search, status, categoryID))
 		</div>
 	}
 }

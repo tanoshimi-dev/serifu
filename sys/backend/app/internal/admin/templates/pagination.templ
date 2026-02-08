@@ -2,30 +2,50 @@ package templates
 
 import "fmt"
 
-templ Pagination(basePath string, currentPage int, totalPages int, extraParams string) {
-	if totalPages > 1 {
-		<div class="flex items-center justify-between mt-6">
-			<div class="text-sm text-gray-500">
-				ページ { fmt.Sprintf("%d", currentPage) } / { fmt.Sprintf("%d", totalPages) }
+templ Pagination(basePath string, currentPage int, totalPages int, total int, pageSize int, extraParams string) {
+	<div class="flex items-center justify-between px-4 py-4 border-t border-gray-200">
+		<div class="flex items-center gap-4">
+			<span class="text-sm text-gray-500">
+				全{ fmt.Sprintf("%d", total) }件中
+				{ fmt.Sprintf("%d", showingFrom(currentPage, pageSize, total)) }〜{ fmt.Sprintf("%d", showingTo(currentPage, pageSize, total)) }件
+			</span>
+			<div class="flex items-center gap-1 text-sm text-gray-500">
+				<span>表示件数:</span>
+				for _, s := range []int{10, 25, 50, 100} {
+					if s == pageSize {
+						<span class="px-2 py-0.5 bg-blue-600 text-white rounded text-xs font-medium">{ fmt.Sprintf("%d", s) }</span>
+					} else {
+						<a
+							href={ templ.SafeURL(fmt.Sprintf("%s?page=1&size=%d%s", basePath, s, extraParams)) }
+							class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs hover:bg-gray-200 transition-colors"
+						>
+							{ fmt.Sprintf("%d", s) }
+						</a>
+					}
+				}
 			</div>
+		</div>
+		if totalPages > 1 {
 			<div class="flex items-center gap-2">
 				if currentPage > 1 {
 					<a
-						href={ templ.SafeURL(fmt.Sprintf("%s?page=%d%s", basePath, currentPage-1, extraParams)) }
-						class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+						href={ templ.SafeURL(fmt.Sprintf("%s?page=%d&size=%d%s", basePath, currentPage-1, pageSize, extraParams)) }
+						class="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
 					>
 						前へ
 					</a>
+				} else {
+					<span class="px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg text-gray-400 cursor-not-allowed">前へ</span>
 				}
 				for _, p := range pageRange(currentPage, totalPages) {
 					if p == currentPage {
-						<span class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg">{ fmt.Sprintf("%d", p) }</span>
+						<span class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg font-medium">{ fmt.Sprintf("%d", p) }</span>
 					} else if p == -1 {
-						<span class="px-2 text-gray-400">...</span>
+						<span class="px-1 text-gray-400">...</span>
 					} else {
 						<a
-							href={ templ.SafeURL(fmt.Sprintf("%s?page=%d%s", basePath, p, extraParams)) }
-							class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+							href={ templ.SafeURL(fmt.Sprintf("%s?page=%d&size=%d%s", basePath, p, pageSize, extraParams)) }
+							class="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
 						>
 							{ fmt.Sprintf("%d", p) }
 						</a>
@@ -33,15 +53,32 @@ templ Pagination(basePath string, currentPage int, totalPages int, extraParams s
 				}
 				if currentPage < totalPages {
 					<a
-						href={ templ.SafeURL(fmt.Sprintf("%s?page=%d%s", basePath, currentPage+1, extraParams)) }
-						class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+						href={ templ.SafeURL(fmt.Sprintf("%s?page=%d&size=%d%s", basePath, currentPage+1, pageSize, extraParams)) }
+						class="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
 					>
 						次へ
 					</a>
+				} else {
+					<span class="px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg text-gray-400 cursor-not-allowed">次へ</span>
 				}
 			</div>
-		</div>
+		}
+	</div>
+}
+
+func showingFrom(currentPage, pageSize, total int) int {
+	if total == 0 {
+		return 0
 	}
+	return (currentPage-1)*pageSize + 1
+}
+
+func showingTo(currentPage, pageSize, total int) int {
+	to := currentPage * pageSize
+	if to > total {
+		return total
+	}
+	return to
 }
 
 func pageRange(current, total int) []int {
@@ -55,7 +92,7 @@ func pageRange(current, total int) []int {
 
 	pages := []int{1}
 	if current > 3 {
-		pages = append(pages, -1) // ellipsis
+		pages = append(pages, -1)
 	}
 	start := current - 1
 	if start < 2 {
@@ -69,7 +106,7 @@ func pageRange(current, total int) []int {
 		pages = append(pages, i)
 	}
 	if current < total-2 {
-		pages = append(pages, -1) // ellipsis
+		pages = append(pages, -1)
 	}
 	pages = append(pages, total)
 	return pages

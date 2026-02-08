@@ -6,7 +6,7 @@ import (
 	"net/url"
 )
 
-templ CommentList(adminName string, comments []database.Comment, search string, status string, page int, totalPages int, total int) {
+templ CommentList(adminName string, comments []database.Comment, search string, status string, page int, totalPages int, total int, pageSize int) {
 	@Layout("コメント", adminName) {
 		<div class="mb-8">
 			<h2 class="text-2xl font-bold text-gray-800">コメント</h2>
@@ -63,7 +63,7 @@ templ CommentList(adminName string, comments []database.Comment, search string, 
 					}
 				</tbody>
 			</table>
-			@Pagination("/admin/comments", page, totalPages, commentFilterParams(search, status))
+			@Pagination("/admin/comments", page, totalPages, total, pageSize, commentFilterParams(search, status))
 		</div>
 	}
 }

@@ -20,7 +20,7 @@ func QuizListHandler(c *gin.Context) {
 	if page < 1 {
 		page = 1
 	}
-	pageSize := 20
+	pageSize := parseSizeParam(c, 10)
 	search := c.Query("search")
 	status := c.Query("status")
 	categoryID := c.Query("category_id")
@@ -56,7 +56,7 @@ func QuizListHandler(c *gin.Context) {
 	db.Order("sort_order ASC, name ASC").Find(&categories)
 
 	var buf bytes.Buffer
-	templates.QuizList(admin.Name, quizzes, categories, search, status, categoryID, page, totalPages, int(total)).Render(c.Request.Context(), &buf)
+	templates.QuizList(admin.Name, quizzes, categories, search, status, categoryID, page, totalPages, int(total), pageSize).Render(c.Request.Context(), &buf)
 	c.Data(http.StatusOK, "text/html; charset=utf-8", buf.Bytes())
 }
 

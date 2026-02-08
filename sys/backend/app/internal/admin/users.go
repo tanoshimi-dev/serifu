@@ -19,7 +19,7 @@ func UserListHandler(c *gin.Context) {
 	if page < 1 {
 		page = 1
 	}
-	pageSize := 20
+	pageSize := parseSizeParam(c, 10)
 	search := c.Query("search")
 	status := c.Query("status")
 
@@ -46,7 +46,7 @@ func UserListHandler(c *gin.Context) {
 	}
 
 	var buf bytes.Buffer
-	templates.UserList(admin.Name, users, search, status, page, totalPages, int(total)).Render(c.Request.Context(), &buf)
+	templates.UserList(admin.Name, users, search, status, page, totalPages, int(total), pageSize).Render(c.Request.Context(), &buf)
 	c.Data(http.StatusOK, "text/html; charset=utf-8", buf.Bytes())
 }
 

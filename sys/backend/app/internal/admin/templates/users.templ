@@ -6,7 +6,7 @@ import (
 	"net/url"
 )
 
-templ UserList(adminName string, users []database.User, search string, status string, page int, totalPages int, total int) {
+templ UserList(adminName string, users []database.User, search string, status string, page int, totalPages int, total int, pageSize int) {
 	@Layout("ユーザー", adminName) {
 		<div class="mb-8">
 			<h2 class="text-2xl font-bold text-gray-800">ユーザー</h2>
@@ -61,7 +61,7 @@ templ UserList(adminName string, users []database.User, search string, status st
 					}
 				</tbody>
 			</table>
-			@Pagination("/admin/users", page, totalPages, userFilterParams(search, status))
+			@Pagination("/admin/users", page, totalPages, total, pageSize, userFilterParams(search, status))
 		</div>
 	}
 }
