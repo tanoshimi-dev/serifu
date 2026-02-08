@@ -1,0 +1,142 @@
+package templates
+
+import (
+	"fmt"
+	"github.com/serifu/backend/internal/database"
+	"net/url"
+)
+
+templ CommentList(adminName string, comments []database.Comment, search string, status string, page int, totalPages int, total int) {
+	@Layout("コメント", adminName) {
+		<div class="mb-8">
+			<h2 class="text-2xl font-bold text-gray-800">コメント</h2>
+			<p class="text-sm text-gray-500 mt-1">全{ fmt.Sprintf("%d", total) }件</p>
+		</div>
+		<div class="bg-white rounded-lg shadow">
+			<div class="p-4 border-b border-gray-200">
+				<form method="GET" action="/admin/comments" class="flex gap-4">
+					<input
+						type="text"
+						name="search"
+						value={ search }
+						placeholder="コメント内容で検索..."
+						class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+					/>
+					<select name="status" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm">
+						<option value="">全ステータス</option>
+						<option value="active" selected?={ status == "active" }>有効</option>
+						<option value="moderated" selected?={ status == "moderated" }>非表示</option>
+					</select>
+					<button type="submit" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+						検索
+					</button>
+				</form>
+			</div>
+			<table class="w-full">
+				<thead>
+					<tr class="border-b border-gray-200 bg-gray-50">
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">内容</th>
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">ユーザー</th>
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">ステータス</th>
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">投稿日</th>
+					</tr>
+				</thead>
+				<tbody>
+					if len(comments) == 0 {
+						<tr>
+							<td colspan="4" class="text-center py-8 text-gray-500">コメントがありません</td>
+						</tr>
+					}
+					for _, comment := range comments {
+						<tr class="border-b border-gray-100 hover:bg-gray-50">
+							<td class="py-3 px-4">
+								<a href={ templ.SafeURL("/admin/comments/" + comment.ID.String()) } class="text-blue-600 hover:text-blue-800 text-sm">{ truncate(comment.Content, 50) }</a>
+							</td>
+							<td class="py-3 px-4 text-sm text-gray-600">
+								if comment.User != nil {
+									<a href={ templ.SafeURL("/admin/users/" + comment.User.ID.String()) } class="text-blue-600 hover:text-blue-800">{ comment.User.Name }</a>
+								}
+							</td>
+							<td class="py-3 px-4">@StatusBadge(comment.Status)</td>
+							<td class="py-3 px-4 text-sm text-gray-600">{ comment.CreatedAt.Format("2006-01-02") }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+			@Pagination("/admin/comments", page, totalPages, commentFilterParams(search, status))
+		</div>
+	}
+}
+
+templ CommentDetail(adminName string, comment database.Comment) {
+	@Layout("コメント詳細", adminName) {
+		<div class="flex items-center justify-between mb-8">
+			<div>
+				<h2 class="text-2xl font-bold text-gray-800">コメント詳細</h2>
+				<p class="text-sm text-gray-500 mt-1">ID: { comment.ID.String() }</p>
+			</div>
+			<div>
+				if comment.Status == "active" {
+					<form method="POST" action={ templ.SafeURL("/admin/comments/" + comment.ID.String() + "/moderate") } onsubmit="return confirmAction('このコメントを非表示にしますか？')">
+						<button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-medium text-sm">
+							非表示にする
+						</button>
+					</form>
+				} else if comment.Status == "moderated" {
+					<form method="POST" action={ templ.SafeURL("/admin/comments/" + comment.ID.String() + "/unmoderate") }>
+						<button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium text-sm">
+							表示に戻す
+						</button>
+					</form>
+				}
+			</div>
+		</div>
+		<div class="max-w-2xl">
+			<div class="bg-white rounded-lg shadow p-6">
+				<dl class="space-y-4">
+					<div>
+						<dt class="text-sm text-gray-500">内容</dt>
+						<dd class="text-sm text-gray-900 mt-1 p-3 bg-gray-50 rounded-lg">{ comment.Content }</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-gray-500">投稿者</dt>
+						<dd class="text-sm mt-1">
+							if comment.User != nil {
+								<a href={ templ.SafeURL("/admin/users/" + comment.User.ID.String()) } class="text-blue-600 hover:text-blue-800">{ comment.User.Name }</a>
+							}
+						</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-gray-500">回答</dt>
+						<dd class="text-sm mt-1">
+							if comment.Answer != nil {
+								<a href={ templ.SafeURL("/admin/answers/" + comment.Answer.ID.String()) } class="text-blue-600 hover:text-blue-800">{ truncate(comment.Answer.Content, 50) }</a>
+							}
+						</dd>
+					</div>
+					<div class="grid grid-cols-2 gap-4">
+						<div>
+							<dt class="text-sm text-gray-500">ステータス</dt>
+							<dd class="mt-1">@StatusBadge(comment.Status)</dd>
+						</div>
+						<div>
+							<dt class="text-sm text-gray-500">投稿日時</dt>
+							<dd class="text-sm text-gray-900 mt-1">{ comment.CreatedAt.Format("2006-01-02 15:04:05") }</dd>
+						</div>
+					</div>
+				</dl>
+			</div>
+		</div>
+	}
+}
+
+func commentFilterParams(search, status string) string {
+	params := ""
+	if search != "" {
+		params += "&search=" + url.QueryEscape(search)
+	}
+	if status != "" {
+		params += "&status=" + url.QueryEscape(status)
+	}
+	return params
+}

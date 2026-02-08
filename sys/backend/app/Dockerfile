@@ -4,11 +4,16 @@ FROM golang:1.21-alpine AS builder
 WORKDIR /app
 
 # Install dependencies
-RUN apk add --no-cache gcc musl-dev
+RUN apk add --no-cache gcc musl-dev git
 
-# Copy go mod file and source code
-COPY go.mod ./
+# Install templ CLI
+RUN go install github.com/a-h/templ/cmd/templ@v0.2.778
+
+# Copy source code
 COPY . .
+
+# Generate templ templates first (creates .go files from .templ files)
+RUN templ generate
 
 # Download dependencies
 RUN go mod tidy
@@ -26,6 +31,10 @@ RUN apk --no-cache add ca-certificates tzdata
 
 # Copy binary from builder
 COPY --from=builder /app/serifu .
+
+# Copy static files and seeds
+COPY --from=builder /app/static ./static
+COPY --from=builder /app/seeds ./seeds
 
 # Expose port
 EXPOSE 8080

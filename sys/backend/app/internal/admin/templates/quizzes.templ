@@ -1,0 +1,327 @@
+package templates
+
+import (
+	"fmt"
+	"github.com/serifu/backend/internal/database"
+	"net/url"
+)
+
+templ QuizList(adminName string, quizzes []database.Quiz, categories []database.Category, search string, status string, categoryID string, page int, totalPages int, total int) {
+	@Layout("クイズ", adminName) {
+		<div class="flex items-center justify-between mb-8">
+			<div>
+				<h2 class="text-2xl font-bold text-gray-800">クイズ</h2>
+				<p class="text-sm text-gray-500 mt-1">全{ fmt.Sprintf("%d", total) }件</p>
+			</div>
+			<a href="/admin/quizzes/new" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+				新規作成
+			</a>
+		</div>
+		<div class="bg-white rounded-lg shadow">
+			<div class="p-4 border-b border-gray-200">
+				<form method="GET" action="/admin/quizzes" class="flex gap-4">
+					<input
+						type="text"
+						name="search"
+						value={ search }
+						placeholder="タイトルで検索..."
+						class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+					/>
+					<select name="status" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm">
+						<option value="">全ステータス</option>
+						<option value="active" selected?={ status == "active" }>有効</option>
+						<option value="draft" selected?={ status == "draft" }>下書き</option>
+					</select>
+					<select name="category_id" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm">
+						<option value="">全カテゴリ</option>
+						for _, cat := range categories {
+							<option value={ cat.ID.String() } selected?={ categoryID == cat.ID.String() }>{ cat.Name }</option>
+						}
+					</select>
+					<button type="submit" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+						検索
+					</button>
+				</form>
+			</div>
+			<table class="w-full">
+				<thead>
+					<tr class="border-b border-gray-200 bg-gray-50">
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">タイトル</th>
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">カテゴリ</th>
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">公開日</th>
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">回答数</th>
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">ステータス</th>
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">操作</th>
+					</tr>
+				</thead>
+				<tbody>
+					if len(quizzes) == 0 {
+						<tr>
+							<td colspan="6" class="text-center py-8 text-gray-500">クイズがありません</td>
+						</tr>
+					}
+					for _, quiz := range quizzes {
+						<tr class="border-b border-gray-100 hover:bg-gray-50">
+							<td class="py-3 px-4">
+								<a href={ templ.SafeURL("/admin/quizzes/" + quiz.ID.String()) } class="text-blue-600 hover:text-blue-800 font-medium text-sm">{ quiz.Title }</a>
+							</td>
+							<td class="py-3 px-4 text-sm text-gray-600">
+								if quiz.Category != nil {
+									{ quiz.Category.Name }
+								} else {
+									<span class="text-gray-400">-</span>
+								}
+							</td>
+							<td class="py-3 px-4 text-sm text-gray-600">{ quiz.ReleaseDate.Format("2006-01-02") }</td>
+							<td class="py-3 px-4 text-sm text-gray-600">{ fmt.Sprintf("%d", quiz.AnswerCount) }</td>
+							<td class="py-3 px-4">@StatusBadge(quiz.Status)</td>
+							<td class="py-3 px-4">
+								<a href={ templ.SafeURL("/admin/quizzes/" + quiz.ID.String() + "/edit") } class="text-sm text-gray-600 hover:text-blue-600">編集</a>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+			@Pagination("/admin/quizzes", page, totalPages, quizFilterParams(search, status, categoryID))
+		</div>
+	}
+}
+
+templ QuizForm(adminName string, quiz *database.Quiz, categories []database.Category, errorMsg string) {
+	@Layout(quizFormTitle(quiz), adminName) {
+		<div class="max-w-2xl">
+			@PageHeader(quizFormTitle(quiz))
+			@Alert(errorMsg, "error")
+			<div class="bg-white rounded-lg shadow p-6">
+				<form method="POST" action={ templ.SafeURL(quizFormAction(quiz)) }>
+					<div class="space-y-6">
+						<div>
+							<label for="title" class="block text-sm font-medium text-gray-700 mb-1">タイトル *</label>
+							<input
+								type="text"
+								id="title"
+								name="title"
+								value={ quizFieldValue(quiz, "title") }
+								required
+								class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+							/>
+						</div>
+						<div>
+							<label for="description" class="block text-sm font-medium text-gray-700 mb-1">説明</label>
+							<textarea
+								id="description"
+								name="description"
+								rows="3"
+								class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+							>{ quizFieldValue(quiz, "description") }</textarea>
+						</div>
+						<div>
+							<label for="requirement" class="block text-sm font-medium text-gray-700 mb-1">回答条件</label>
+							<textarea
+								id="requirement"
+								name="requirement"
+								rows="2"
+								class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+							>{ quizFieldValue(quiz, "requirement") }</textarea>
+						</div>
+						<div class="grid grid-cols-2 gap-4">
+							<div>
+								<label for="category_id" class="block text-sm font-medium text-gray-700 mb-1">カテゴリ</label>
+								<select
+									id="category_id"
+									name="category_id"
+									class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+								>
+									<option value="">未選択</option>
+									for _, cat := range categories {
+										<option value={ cat.ID.String() } selected?={ quiz != nil && quiz.CategoryID != nil && *quiz.CategoryID == cat.ID }>{ cat.Name }</option>
+									}
+								</select>
+							</div>
+							<div>
+								<label for="release_date" class="block text-sm font-medium text-gray-700 mb-1">公開日</label>
+								<input
+									type="date"
+									id="release_date"
+									name="release_date"
+									value={ quizFieldValue(quiz, "release_date") }
+									class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+								/>
+							</div>
+						</div>
+						<div>
+							<label for="status" class="block text-sm font-medium text-gray-700 mb-1">ステータス</label>
+							<select
+								id="status"
+								name="status"
+								class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+							>
+								<option value="draft" selected?={ quiz == nil || quiz.Status == "draft" }>下書き</option>
+								<option value="active" selected?={ quiz != nil && quiz.Status == "active" }>有効</option>
+							</select>
+						</div>
+					</div>
+					<div class="flex items-center gap-4 mt-8">
+						<button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+							if quiz != nil {
+								更新
+							} else {
+								作成
+							}
+						</button>
+						<a href="/admin/quizzes" class="text-gray-600 hover:text-gray-800 text-sm">キャンセル</a>
+					</div>
+				</form>
+			</div>
+		</div>
+	}
+}
+
+templ QuizDetail(adminName string, quiz database.Quiz, answers []database.Answer) {
+	@Layout(quiz.Title, adminName) {
+		<div class="flex items-center justify-between mb-8">
+			<div>
+				<h2 class="text-2xl font-bold text-gray-800">{ quiz.Title }</h2>
+				<p class="text-sm text-gray-500 mt-1">ID: { quiz.ID.String() }</p>
+			</div>
+			<div class="flex items-center gap-3">
+				<a href={ templ.SafeURL("/admin/quizzes/" + quiz.ID.String() + "/edit") } class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+					編集
+				</a>
+				<form method="POST" action={ templ.SafeURL("/admin/quizzes/" + quiz.ID.String() + "/delete") } onsubmit="return confirmDelete('このクイズ')">
+					<button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-medium text-sm">
+						削除
+					</button>
+				</form>
+			</div>
+		</div>
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+			<div class="bg-white rounded-lg shadow p-6">
+				<h3 class="text-lg font-semibold text-gray-800 mb-4">基本情報</h3>
+				<dl class="space-y-4">
+					<div>
+						<dt class="text-sm text-gray-500">タイトル</dt>
+						<dd class="text-sm font-medium text-gray-900 mt-1">{ quiz.Title }</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-gray-500">説明</dt>
+						<dd class="text-sm text-gray-900 mt-1">
+							if quiz.Description != "" {
+								{ quiz.Description }
+							} else {
+								<span class="text-gray-400">未設定</span>
+							}
+						</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-gray-500">回答条件</dt>
+						<dd class="text-sm text-gray-900 mt-1">
+							if quiz.Requirement != "" {
+								{ quiz.Requirement }
+							} else {
+								<span class="text-gray-400">未設定</span>
+							}
+						</dd>
+					</div>
+					<div class="grid grid-cols-2 gap-4">
+						<div>
+							<dt class="text-sm text-gray-500">カテゴリ</dt>
+							<dd class="text-sm text-gray-900 mt-1">
+								if quiz.Category != nil {
+									{ quiz.Category.Name }
+								} else {
+									<span class="text-gray-400">未設定</span>
+								}
+							</dd>
+						</div>
+						<div>
+							<dt class="text-sm text-gray-500">ステータス</dt>
+							<dd class="mt-1">@StatusBadge(quiz.Status)</dd>
+						</div>
+					</div>
+					<div class="grid grid-cols-2 gap-4">
+						<div>
+							<dt class="text-sm text-gray-500">公開日</dt>
+							<dd class="text-sm text-gray-900 mt-1">{ quiz.ReleaseDate.Format("2006-01-02") }</dd>
+						</div>
+						<div>
+							<dt class="text-sm text-gray-500">回答数</dt>
+							<dd class="text-sm text-gray-900 mt-1">{ fmt.Sprintf("%d", quiz.AnswerCount) }</dd>
+						</div>
+					</div>
+					<div>
+						<dt class="text-sm text-gray-500">作成日時</dt>
+						<dd class="text-sm text-gray-900 mt-1">{ quiz.CreatedAt.Format("2006-01-02 15:04:05") }</dd>
+					</div>
+				</dl>
+			</div>
+			<div class="bg-white rounded-lg shadow p-6">
+				<h3 class="text-lg font-semibold text-gray-800 mb-4">最近の回答</h3>
+				if len(answers) == 0 {
+					<p class="text-gray-500 text-sm">回答がありません</p>
+				} else {
+					<div class="space-y-3">
+						for _, answer := range answers {
+							<div class="py-2 border-b border-gray-100 last:border-0">
+								<a href={ templ.SafeURL("/admin/answers/" + answer.ID.String()) } class="text-sm text-blue-600 hover:text-blue-800">{ truncate(answer.Content, 50) }</a>
+								<div class="flex items-center gap-2 mt-1">
+									if answer.User != nil {
+										<span class="text-xs text-gray-500">{ answer.User.Name }</span>
+									}
+									<span class="text-xs text-gray-400">{ fmt.Sprintf("♥%d", answer.LikeCount) }</span>
+									@StatusBadge(answer.Status)
+								</div>
+							</div>
+						}
+					</div>
+				}
+			</div>
+		</div>
+	}
+}
+
+func quizFormTitle(quiz *database.Quiz) string {
+	if quiz != nil {
+		return "クイズ編集"
+	}
+	return "クイズ作成"
+}
+
+func quizFormAction(quiz *database.Quiz) string {
+	if quiz != nil {
+		return "/admin/quizzes/" + quiz.ID.String()
+	}
+	return "/admin/quizzes"
+}
+
+func quizFieldValue(quiz *database.Quiz, field string) string {
+	if quiz == nil {
+		return ""
+	}
+	switch field {
+	case "title":
+		return quiz.Title
+	case "description":
+		return quiz.Description
+	case "requirement":
+		return quiz.Requirement
+	case "release_date":
+		return quiz.ReleaseDate.Format("2006-01-02")
+	default:
+		return ""
+	}
+}
+
+func quizFilterParams(search, status, categoryID string) string {
+	params := ""
+	if search != "" {
+		params += "&search=" + url.QueryEscape(search)
+	}
+	if status != "" {
+		params += "&status=" + url.QueryEscape(status)
+	}
+	if categoryID != "" {
+		params += "&category_id=" + url.QueryEscape(categoryID)
+	}
+	return params
+}

@@ -47,6 +47,8 @@ func RunMigrations() error {
 		&Comment{},
 		&Like{},
 		&Follow{},
+		&AdminUser{},
+		&AdminAuditLog{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)

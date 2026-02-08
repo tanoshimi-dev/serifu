@@ -1,0 +1,289 @@
+package templates
+
+import (
+	"fmt"
+	"github.com/serifu/backend/internal/database"
+	"net/url"
+)
+
+templ CategoryList(adminName string, categories []database.Category, search string, page int, totalPages int, total int) {
+	@Layout("カテゴリ", adminName) {
+		<div class="flex items-center justify-between mb-8">
+			<div>
+				<h2 class="text-2xl font-bold text-gray-800">カテゴリ</h2>
+				<p class="text-sm text-gray-500 mt-1">全{ fmt.Sprintf("%d", total) }件</p>
+			</div>
+			<a href="/admin/categories/new" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+				新規作成
+			</a>
+		</div>
+		<div class="bg-white rounded-lg shadow">
+			<div class="p-4 border-b border-gray-200">
+				<form method="GET" action="/admin/categories" class="flex gap-4">
+					<input
+						type="text"
+						name="search"
+						value={ search }
+						placeholder="カテゴリ名で検索..."
+						class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+					/>
+					<button type="submit" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+						検索
+					</button>
+				</form>
+			</div>
+			<table class="w-full">
+				<thead>
+					<tr class="border-b border-gray-200 bg-gray-50">
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">名前</th>
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">アイコン</th>
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">並び順</th>
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">ステータス</th>
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">操作</th>
+					</tr>
+				</thead>
+				<tbody>
+					if len(categories) == 0 {
+						<tr>
+							<td colspan="5" class="text-center py-8 text-gray-500">カテゴリがありません</td>
+						</tr>
+					}
+					for _, cat := range categories {
+						<tr class="border-b border-gray-100 hover:bg-gray-50">
+							<td class="py-3 px-4">
+								<a href={ templ.SafeURL("/admin/categories/" + cat.ID.String()) } class="text-blue-600 hover:text-blue-800 font-medium">{ cat.Name }</a>
+								if cat.Description != "" {
+									<p class="text-xs text-gray-500 mt-0.5">{ truncate(cat.Description, 40) }</p>
+								}
+							</td>
+							<td class="py-3 px-4 text-sm">{ cat.Icon }</td>
+							<td class="py-3 px-4 text-sm">{ fmt.Sprintf("%d", cat.SortOrder) }</td>
+							<td class="py-3 px-4">@StatusBadge(cat.Status)</td>
+							<td class="py-3 px-4">
+								<div class="flex items-center gap-2">
+									<a href={ templ.SafeURL("/admin/categories/" + cat.ID.String() + "/edit") } class="text-sm text-gray-600 hover:text-blue-600">編集</a>
+								</div>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+			@Pagination("/admin/categories", page, totalPages, searchParam(search))
+		</div>
+	}
+}
+
+templ CategoryForm(adminName string, category *database.Category, errorMsg string) {
+	@Layout(categoryFormTitle(category), adminName) {
+		<div class="max-w-2xl">
+			@PageHeader(categoryFormTitle(category))
+			@Alert(errorMsg, "error")
+			<div class="bg-white rounded-lg shadow p-6">
+				<form method="POST" action={ templ.SafeURL(categoryFormAction(category)) }>
+					<div class="space-y-6">
+						<div>
+							<label for="name" class="block text-sm font-medium text-gray-700 mb-1">カテゴリ名 *</label>
+							<input
+								type="text"
+								id="name"
+								name="name"
+								value={ categoryFieldValue(category, "name") }
+								required
+								class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+							/>
+						</div>
+						<div>
+							<label for="description" class="block text-sm font-medium text-gray-700 mb-1">説明</label>
+							<textarea
+								id="description"
+								name="description"
+								rows="3"
+								class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+							>{ categoryFieldValue(category, "description") }</textarea>
+						</div>
+						<div class="grid grid-cols-2 gap-4">
+							<div>
+								<label for="icon" class="block text-sm font-medium text-gray-700 mb-1">アイコン</label>
+								<input
+									type="text"
+									id="icon"
+									name="icon"
+									value={ categoryFieldValue(category, "icon") }
+									class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+								/>
+							</div>
+							<div>
+								<label for="color" class="block text-sm font-medium text-gray-700 mb-1">カラー</label>
+								<input
+									type="text"
+									id="color"
+									name="color"
+									value={ categoryFieldValue(category, "color") }
+									class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+								/>
+							</div>
+						</div>
+						<div class="grid grid-cols-2 gap-4">
+							<div>
+								<label for="sort_order" class="block text-sm font-medium text-gray-700 mb-1">並び順</label>
+								<input
+									type="number"
+									id="sort_order"
+									name="sort_order"
+									value={ categoryFieldValue(category, "sort_order") }
+									class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+								/>
+							</div>
+							<div>
+								<label for="status" class="block text-sm font-medium text-gray-700 mb-1">ステータス</label>
+								<select
+									id="status"
+									name="status"
+									class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+								>
+									<option value="active" selected?={ category == nil || category.Status == "active" }>有効</option>
+									<option value="inactive" selected?={ category != nil && category.Status == "inactive" }>無効</option>
+								</select>
+							</div>
+						</div>
+					</div>
+					<div class="flex items-center gap-4 mt-8">
+						<button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+							if category != nil {
+								更新
+							} else {
+								作成
+							}
+						</button>
+						<a href="/admin/categories" class="text-gray-600 hover:text-gray-800 text-sm">キャンセル</a>
+					</div>
+				</form>
+			</div>
+		</div>
+	}
+}
+
+templ CategoryDetail(adminName string, category database.Category) {
+	@Layout(category.Name, adminName) {
+		<div class="flex items-center justify-between mb-8">
+			<div>
+				<h2 class="text-2xl font-bold text-gray-800">{ category.Name }</h2>
+				<p class="text-sm text-gray-500 mt-1">ID: { category.ID.String() }</p>
+			</div>
+			<div class="flex items-center gap-3">
+				<a href={ templ.SafeURL("/admin/categories/" + category.ID.String() + "/edit") } class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+					編集
+				</a>
+				<form method="POST" action={ templ.SafeURL("/admin/categories/" + category.ID.String() + "/delete") } onsubmit="return confirmDelete('このカテゴリ')">
+					<button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-medium text-sm">
+						削除
+					</button>
+				</form>
+			</div>
+		</div>
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+			<div class="bg-white rounded-lg shadow p-6">
+				<h3 class="text-lg font-semibold text-gray-800 mb-4">基本情報</h3>
+				<dl class="space-y-4">
+					<div>
+						<dt class="text-sm text-gray-500">名前</dt>
+						<dd class="text-sm font-medium text-gray-900 mt-1">{ category.Name }</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-gray-500">説明</dt>
+						<dd class="text-sm text-gray-900 mt-1">
+							if category.Description != "" {
+								{ category.Description }
+							} else {
+								<span class="text-gray-400">未設定</span>
+							}
+						</dd>
+					</div>
+					<div class="grid grid-cols-2 gap-4">
+						<div>
+							<dt class="text-sm text-gray-500">アイコン</dt>
+							<dd class="text-sm text-gray-900 mt-1">{ category.Icon }</dd>
+						</div>
+						<div>
+							<dt class="text-sm text-gray-500">カラー</dt>
+							<dd class="text-sm text-gray-900 mt-1">{ category.Color }</dd>
+						</div>
+					</div>
+					<div class="grid grid-cols-2 gap-4">
+						<div>
+							<dt class="text-sm text-gray-500">並び順</dt>
+							<dd class="text-sm text-gray-900 mt-1">{ fmt.Sprintf("%d", category.SortOrder) }</dd>
+						</div>
+						<div>
+							<dt class="text-sm text-gray-500">ステータス</dt>
+							<dd class="mt-1">@StatusBadge(category.Status)</dd>
+						</div>
+					</div>
+					<div>
+						<dt class="text-sm text-gray-500">作成日時</dt>
+						<dd class="text-sm text-gray-900 mt-1">{ category.CreatedAt.Format("2006-01-02 15:04:05") }</dd>
+					</div>
+				</dl>
+			</div>
+			<div class="bg-white rounded-lg shadow p-6">
+				<h3 class="text-lg font-semibold text-gray-800 mb-4">関連クイズ ({ fmt.Sprintf("%d", len(category.Quizzes)) }件)</h3>
+				if len(category.Quizzes) == 0 {
+					<p class="text-gray-500 text-sm">関連するクイズはありません</p>
+				} else {
+					<div class="space-y-3">
+						for _, quiz := range category.Quizzes {
+							<div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+								<a href={ templ.SafeURL("/admin/quizzes/" + quiz.ID.String()) } class="text-sm text-blue-600 hover:text-blue-800">{ quiz.Title }</a>
+								@StatusBadge(quiz.Status)
+							</div>
+						}
+					</div>
+				}
+			</div>
+		</div>
+	}
+}
+
+func categoryFormTitle(category *database.Category) string {
+	if category != nil {
+		return "カテゴリ編集"
+	}
+	return "カテゴリ作成"
+}
+
+func categoryFormAction(category *database.Category) string {
+	if category != nil {
+		return "/admin/categories/" + category.ID.String()
+	}
+	return "/admin/categories"
+}
+
+func categoryFieldValue(category *database.Category, field string) string {
+	if category == nil {
+		if field == "sort_order" {
+			return "0"
+		}
+		return ""
+	}
+	switch field {
+	case "name":
+		return category.Name
+	case "description":
+		return category.Description
+	case "icon":
+		return category.Icon
+	case "color":
+		return category.Color
+	case "sort_order":
+		return fmt.Sprintf("%d", category.SortOrder)
+	default:
+		return ""
+	}
+}
+
+func searchParam(search string) string {
+	if search == "" {
+		return ""
+	}
+	return "&search=" + url.QueryEscape(search)
+}

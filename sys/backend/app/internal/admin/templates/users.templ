@@ -1,0 +1,177 @@
+package templates
+
+import (
+	"fmt"
+	"github.com/serifu/backend/internal/database"
+	"net/url"
+)
+
+templ UserList(adminName string, users []database.User, search string, status string, page int, totalPages int, total int) {
+	@Layout("ユーザー", adminName) {
+		<div class="mb-8">
+			<h2 class="text-2xl font-bold text-gray-800">ユーザー</h2>
+			<p class="text-sm text-gray-500 mt-1">全{ fmt.Sprintf("%d", total) }件</p>
+		</div>
+		<div class="bg-white rounded-lg shadow">
+			<div class="p-4 border-b border-gray-200">
+				<form method="GET" action="/admin/users" class="flex gap-4">
+					<input
+						type="text"
+						name="search"
+						value={ search }
+						placeholder="名前・メールで検索..."
+						class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+					/>
+					<select name="status" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm">
+						<option value="">全ステータス</option>
+						<option value="active" selected?={ status == "active" }>有効</option>
+						<option value="suspended" selected?={ status == "suspended" }>停止中</option>
+					</select>
+					<button type="submit" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+						検索
+					</button>
+				</form>
+			</div>
+			<table class="w-full">
+				<thead>
+					<tr class="border-b border-gray-200 bg-gray-50">
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">ユーザー</th>
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">メール</th>
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">いいね数</th>
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">ステータス</th>
+						<th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">登録日</th>
+					</tr>
+				</thead>
+				<tbody>
+					if len(users) == 0 {
+						<tr>
+							<td colspan="5" class="text-center py-8 text-gray-500">ユーザーがいません</td>
+						</tr>
+					}
+					for _, user := range users {
+						<tr class="border-b border-gray-100 hover:bg-gray-50">
+							<td class="py-3 px-4">
+								<a href={ templ.SafeURL("/admin/users/" + user.ID.String()) } class="text-blue-600 hover:text-blue-800 font-medium text-sm">{ user.Name }</a>
+							</td>
+							<td class="py-3 px-4 text-sm text-gray-600">{ user.Email }</td>
+							<td class="py-3 px-4 text-sm text-gray-600">{ fmt.Sprintf("%d", user.TotalLikes) }</td>
+							<td class="py-3 px-4">@StatusBadge(user.Status)</td>
+							<td class="py-3 px-4 text-sm text-gray-600">{ user.CreatedAt.Format("2006-01-02") }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+			@Pagination("/admin/users", page, totalPages, userFilterParams(search, status))
+		</div>
+	}
+}
+
+templ UserDetail(adminName string, user database.User, answerCount int64, commentCount int64, followerCount int64, followingCount int64, recentAnswers []database.Answer) {
+	@Layout(user.Name, adminName) {
+		<div class="flex items-center justify-between mb-8">
+			<div>
+				<h2 class="text-2xl font-bold text-gray-800">{ user.Name }</h2>
+				<p class="text-sm text-gray-500 mt-1">ID: { user.ID.String() }</p>
+			</div>
+			<div>
+				if user.Status == "active" {
+					<form method="POST" action={ templ.SafeURL("/admin/users/" + user.ID.String() + "/suspend") } onsubmit="return confirmAction('このユーザーを停止しますか？')">
+						<button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-medium text-sm">
+							アカウント停止
+						</button>
+					</form>
+				} else if user.Status == "suspended" {
+					<form method="POST" action={ templ.SafeURL("/admin/users/" + user.ID.String() + "/unsuspend") }>
+						<button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium text-sm">
+							停止解除
+						</button>
+					</form>
+				}
+			</div>
+		</div>
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+			<div class="bg-white rounded-lg shadow p-6">
+				<h3 class="text-lg font-semibold text-gray-800 mb-4">基本情報</h3>
+				<dl class="space-y-4">
+					<div>
+						<dt class="text-sm text-gray-500">名前</dt>
+						<dd class="text-sm font-medium text-gray-900 mt-1">{ user.Name }</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-gray-500">メール</dt>
+						<dd class="text-sm text-gray-900 mt-1">{ user.Email }</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-gray-500">自己紹介</dt>
+						<dd class="text-sm text-gray-900 mt-1">
+							if user.Bio != "" {
+								{ user.Bio }
+							} else {
+								<span class="text-gray-400">未設定</span>
+							}
+						</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-gray-500">ステータス</dt>
+						<dd class="mt-1">@StatusBadge(user.Status)</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-gray-500">登録日時</dt>
+						<dd class="text-sm text-gray-900 mt-1">{ user.CreatedAt.Format("2006-01-02 15:04:05") }</dd>
+					</div>
+				</dl>
+			</div>
+			<div class="space-y-6">
+				<div class="grid grid-cols-2 gap-4">
+					<div class="bg-white rounded-lg shadow p-4 text-center">
+						<p class="text-2xl font-bold text-gray-900">{ fmt.Sprintf("%d", answerCount) }</p>
+						<p class="text-sm text-gray-500">回答</p>
+					</div>
+					<div class="bg-white rounded-lg shadow p-4 text-center">
+						<p class="text-2xl font-bold text-gray-900">{ fmt.Sprintf("%d", commentCount) }</p>
+						<p class="text-sm text-gray-500">コメント</p>
+					</div>
+					<div class="bg-white rounded-lg shadow p-4 text-center">
+						<p class="text-2xl font-bold text-gray-900">{ fmt.Sprintf("%d", followerCount) }</p>
+						<p class="text-sm text-gray-500">フォロワー</p>
+					</div>
+					<div class="bg-white rounded-lg shadow p-4 text-center">
+						<p class="text-2xl font-bold text-gray-900">{ fmt.Sprintf("%d", followingCount) }</p>
+						<p class="text-sm text-gray-500">フォロー中</p>
+					</div>
+				</div>
+				<div class="bg-white rounded-lg shadow p-6">
+					<h3 class="text-lg font-semibold text-gray-800 mb-4">最近の回答</h3>
+					if len(recentAnswers) == 0 {
+						<p class="text-gray-500 text-sm">回答がありません</p>
+					} else {
+						<div class="space-y-3">
+							for _, answer := range recentAnswers {
+								<div class="py-2 border-b border-gray-100 last:border-0">
+									<a href={ templ.SafeURL("/admin/answers/" + answer.ID.String()) } class="text-sm text-blue-600 hover:text-blue-800">{ truncate(answer.Content, 50) }</a>
+									<div class="flex items-center gap-2 mt-1">
+										if answer.Quiz != nil {
+											<span class="text-xs text-gray-500">{ answer.Quiz.Title }</span>
+										}
+										@StatusBadge(answer.Status)
+									</div>
+								</div>
+							}
+						</div>
+					}
+				</div>
+			</div>
+		</div>
+	}
+}
+
+func userFilterParams(search, status string) string {
+	params := ""
+	if search != "" {
+		params += "&search=" + url.QueryEscape(search)
+	}
+	if status != "" {
+		params += "&status=" + url.QueryEscape(status)
+	}
+	return params
+}

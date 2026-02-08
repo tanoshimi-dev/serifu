@@ -1,0 +1,76 @@
+package templates
+
+import "fmt"
+
+templ Pagination(basePath string, currentPage int, totalPages int, extraParams string) {
+	if totalPages > 1 {
+		<div class="flex items-center justify-between mt-6">
+			<div class="text-sm text-gray-500">
+				ページ { fmt.Sprintf("%d", currentPage) } / { fmt.Sprintf("%d", totalPages) }
+			</div>
+			<div class="flex items-center gap-2">
+				if currentPage > 1 {
+					<a
+						href={ templ.SafeURL(fmt.Sprintf("%s?page=%d%s", basePath, currentPage-1, extraParams)) }
+						class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+					>
+						前へ
+					</a>
+				}
+				for _, p := range pageRange(currentPage, totalPages) {
+					if p == currentPage {
+						<span class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg">{ fmt.Sprintf("%d", p) }</span>
+					} else if p == -1 {
+						<span class="px-2 text-gray-400">...</span>
+					} else {
+						<a
+							href={ templ.SafeURL(fmt.Sprintf("%s?page=%d%s", basePath, p, extraParams)) }
+							class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+						>
+							{ fmt.Sprintf("%d", p) }
+						</a>
+					}
+				}
+				if currentPage < totalPages {
+					<a
+						href={ templ.SafeURL(fmt.Sprintf("%s?page=%d%s", basePath, currentPage+1, extraParams)) }
+						class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+					>
+						次へ
+					</a>
+				}
+			</div>
+		</div>
+	}
+}
+
+func pageRange(current, total int) []int {
+	if total <= 7 {
+		pages := make([]int, total)
+		for i := range pages {
+			pages[i] = i + 1
+		}
+		return pages
+	}
+
+	pages := []int{1}
+	if current > 3 {
+		pages = append(pages, -1) // ellipsis
+	}
+	start := current - 1
+	if start < 2 {
+		start = 2
+	}
+	end := current + 1
+	if end > total-1 {
+		end = total - 1
+	}
+	for i := start; i <= end; i++ {
+		pages = append(pages, i)
+	}
+	if current < total-2 {
+		pages = append(pages, -1) // ellipsis
+	}
+	pages = append(pages, total)
+	return pages
+}

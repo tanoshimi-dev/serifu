@@ -11,6 +11,12 @@ type Config struct {
 	Server     ServerConfig
 	Database   DatabaseConfig
 	Pagination PaginationConfig
+	Admin      AdminConfig
+}
+
+type AdminConfig struct {
+	SessionSecret string
+	SessionTTL    int // hours
 }
 
 type ServerConfig struct {
@@ -51,6 +57,10 @@ func Load() *Config {
 		Pagination: PaginationConfig{
 			DefaultPageSize: getEnvInt("DEFAULT_PAGE_SIZE", 20),
 			MaxPageSize:     getEnvInt("MAX_PAGE_SIZE", 100),
+		},
+		Admin: AdminConfig{
+			SessionSecret: getEnv("ADMIN_SESSION_SECRET", "serifu-admin-secret-change-me"),
+			SessionTTL:    getEnvInt("ADMIN_SESSION_TTL_HOURS", 24),
 		},
 	}
 }

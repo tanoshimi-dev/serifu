@@ -110,6 +110,30 @@ type Follow struct {
 	Following *User `gorm:"foreignKey:FollowingID" json:"following,omitempty"`
 }
 
+type AdminUser struct {
+	ID           uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	Email        string     `gorm:"uniqueIndex;not null"`
+	Name         string     `gorm:"not null"`
+	PasswordHash string     `gorm:"not null"`
+	Role         string     `gorm:"default:admin"`
+	Status       string     `gorm:"default:active"`
+	LastLoginAt  *time.Time
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+type AdminAuditLog struct {
+	ID          uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	AdminUserID uuid.UUID `gorm:"type:uuid;index;not null"`
+	Action      string    `gorm:"not null"`
+	EntityType  string
+	EntityID    string
+	IPAddress   string
+	CreatedAt   time.Time
+
+	AdminUser *AdminUser `gorm:"foreignKey:AdminUserID"`
+}
+
 func (Like) TableName() string {
 	return "likes"
 }

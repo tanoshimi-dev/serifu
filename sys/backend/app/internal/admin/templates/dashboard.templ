@@ -1,0 +1,136 @@
+package templates
+
+import (
+	"fmt"
+	"github.com/serifu/backend/internal/database"
+)
+
+type DashboardStats struct {
+	TotalUsers      int64
+	TotalQuizzes    int64
+	TotalAnswers    int64
+	TotalComments   int64
+	TodayUsers      int64
+	TodayQuizzes    int64
+	TodayAnswers    int64
+	TodayComments   int64
+	RecentUsers     []database.User
+	RecentQuizzes   []database.Quiz
+	RecentAnswers   []database.Answer
+	RecentComments  []database.Comment
+}
+
+templ Dashboard(adminName string, stats DashboardStats) {
+	@Layout("ダッシュボード", adminName) {
+		@PageHeader("ダッシュボード")
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+			@StatCard("ユーザー", stats.TotalUsers, stats.TodayUsers, "/admin/users", "bg-blue-500")
+			@StatCard("クイズ", stats.TotalQuizzes, stats.TodayQuizzes, "/admin/quizzes", "bg-green-500")
+			@StatCard("回答", stats.TotalAnswers, stats.TodayAnswers, "/admin/answers", "bg-purple-500")
+			@StatCard("コメント", stats.TotalComments, stats.TodayComments, "/admin/comments", "bg-orange-500")
+		</div>
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+			<div class="bg-white rounded-lg shadow p-6">
+				<h3 class="text-lg font-semibold text-gray-800 mb-4">最近のユーザー</h3>
+				if len(stats.RecentUsers) == 0 {
+					<p class="text-gray-500 text-sm">ユーザーがいません</p>
+				} else {
+					<div class="space-y-3">
+						for _, user := range stats.RecentUsers {
+							<div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+								<div>
+									<a href={ templ.SafeURL("/admin/users/" + user.ID.String()) } class="text-sm font-medium text-blue-600 hover:text-blue-800">{ user.Name }</a>
+									<p class="text-xs text-gray-500">{ user.Email }</p>
+								</div>
+								@StatusBadge(user.Status)
+							</div>
+						}
+					</div>
+				}
+			</div>
+			<div class="bg-white rounded-lg shadow p-6">
+				<h3 class="text-lg font-semibold text-gray-800 mb-4">最近のクイズ</h3>
+				if len(stats.RecentQuizzes) == 0 {
+					<p class="text-gray-500 text-sm">クイズがありません</p>
+				} else {
+					<div class="space-y-3">
+						for _, quiz := range stats.RecentQuizzes {
+							<div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+								<div>
+									<a href={ templ.SafeURL("/admin/quizzes/" + quiz.ID.String()) } class="text-sm font-medium text-blue-600 hover:text-blue-800">{ quiz.Title }</a>
+									if quiz.Category != nil {
+										<p class="text-xs text-gray-500">{ quiz.Category.Name }</p>
+									}
+								</div>
+								@StatusBadge(quiz.Status)
+							</div>
+						}
+					</div>
+				}
+			</div>
+			<div class="bg-white rounded-lg shadow p-6">
+				<h3 class="text-lg font-semibold text-gray-800 mb-4">最近の回答</h3>
+				if len(stats.RecentAnswers) == 0 {
+					<p class="text-gray-500 text-sm">回答がありません</p>
+				} else {
+					<div class="space-y-3">
+						for _, answer := range stats.RecentAnswers {
+							<div class="py-2 border-b border-gray-100 last:border-0">
+								<a href={ templ.SafeURL("/admin/answers/" + answer.ID.String()) } class="text-sm text-blue-600 hover:text-blue-800">{ truncate(answer.Content, 50) }</a>
+								<div class="flex items-center gap-2 mt-1">
+									if answer.User != nil {
+										<span class="text-xs text-gray-500">by { answer.User.Name }</span>
+									}
+									@StatusBadge(answer.Status)
+								</div>
+							</div>
+						}
+					</div>
+				}
+			</div>
+			<div class="bg-white rounded-lg shadow p-6">
+				<h3 class="text-lg font-semibold text-gray-800 mb-4">最近のコメント</h3>
+				if len(stats.RecentComments) == 0 {
+					<p class="text-gray-500 text-sm">コメントがありません</p>
+				} else {
+					<div class="space-y-3">
+						for _, comment := range stats.RecentComments {
+							<div class="py-2 border-b border-gray-100 last:border-0">
+								<a href={ templ.SafeURL("/admin/comments/" + comment.ID.String()) } class="text-sm text-blue-600 hover:text-blue-800">{ truncate(comment.Content, 50) }</a>
+								<div class="flex items-center gap-2 mt-1">
+									if comment.User != nil {
+										<span class="text-xs text-gray-500">by { comment.User.Name }</span>
+									}
+									@StatusBadge(comment.Status)
+								</div>
+							</div>
+						}
+					</div>
+				}
+			</div>
+		</div>
+	}
+}
+
+templ StatCard(label string, total int64, today int64, href string, colorClass string) {
+	<a href={ templ.SafeURL(href) } class="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+		<div class="flex items-center justify-between">
+			<div>
+				<p class="text-sm text-gray-600">{ label }</p>
+				<p class="text-3xl font-bold text-gray-900 mt-1">{ fmt.Sprintf("%d", total) }</p>
+			</div>
+			<div class={ "w-12 h-12 rounded-full flex items-center justify-center text-white", colorClass }>
+				<span class="text-lg font-bold">{ fmt.Sprintf("%d", today) }</span>
+			</div>
+		</div>
+		<p class="text-xs text-gray-500 mt-2">今日: +{ fmt.Sprintf("%d", today) }</p>
+	</a>
+}
+
+func truncate(s string, maxLen int) string {
+	runes := []rune(s)
+	if len(runes) <= maxLen {
+		return s
+	}
+	return string(runes[:maxLen]) + "..."
+}
