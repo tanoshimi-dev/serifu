@@ -13,9 +13,14 @@ templ QuizList(adminName string, quizzes []database.Quiz, categories []database.
 				<h2 class="text-2xl font-bold text-gray-800">クイズ</h2>
 				<p class="text-sm text-gray-500 mt-1">全{ fmt.Sprintf("%d", total) }件</p>
 			</div>
-			<a href="/admin/quizzes/new" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
-				新規作成
-			</a>
+			<div class="flex items-center gap-3">
+				<a href="/admin/quizzes/bulk" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium text-sm">
+					一括作成
+				</a>
+				<a href="/admin/quizzes/new" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+					新規作成
+				</a>
+			</div>
 		</div>
 		<div class="bg-white rounded-lg shadow">
 			<div class="p-4 border-b border-gray-200">

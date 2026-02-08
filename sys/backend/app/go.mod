@@ -7,9 +7,11 @@ require (
 	github.com/gin-contrib/cors v1.5.0
 	github.com/gin-contrib/sessions v1.0.1
 	github.com/gin-gonic/gin v1.9.1
+	github.com/google/generative-ai-go v0.19.0
 	github.com/google/uuid v1.5.0
 	github.com/joho/godotenv v1.5.1
 	golang.org/x/crypto v0.26.0
+	google.golang.org/api v0.209.0
 	gorm.io/driver/postgres v1.5.7
 	gorm.io/gorm v1.25.8
 )
