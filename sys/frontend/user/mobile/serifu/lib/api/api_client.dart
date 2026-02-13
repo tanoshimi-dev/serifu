@@ -24,6 +24,7 @@ class ApiClient {
   }
 
   String? _userId;
+  String? _token;
 
   void setUserId(String userId) {
     _userId = userId;
@@ -31,9 +32,18 @@ class ApiClient {
 
   String? get userId => _userId;
 
+  void setToken(String token) {
+    _token = token;
+  }
+
+  void clearToken() {
+    _token = null;
+  }
+
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        if (_token != null) 'Authorization': 'Bearer $_token',
         if (_userId != null) 'X-User-ID': _userId!,
       };
 

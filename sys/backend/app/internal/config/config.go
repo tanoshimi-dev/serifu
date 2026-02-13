@@ -12,6 +12,12 @@ type Config struct {
 	Database   DatabaseConfig
 	Pagination PaginationConfig
 	Admin      AdminConfig
+	JWT        JWTConfig
+}
+
+type JWTConfig struct {
+	Secret   string
+	TTLHours int
 }
 
 type AdminConfig struct {
@@ -61,6 +67,10 @@ func Load() *Config {
 		Admin: AdminConfig{
 			SessionSecret: getEnv("ADMIN_SESSION_SECRET", "serifu-admin-secret-change-me"),
 			SessionTTL:    getEnvInt("ADMIN_SESSION_TTL_HOURS", 24),
+		},
+		JWT: JWTConfig{
+			Secret:   getEnv("JWT_SECRET", "serifu-jwt-secret-change-me"),
+			TTLHours: getEnvInt("JWT_TTL_HOURS", 72),
 		},
 	}
 }

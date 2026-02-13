@@ -22,6 +22,7 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		})
 	})
 
+	authHandler := handlers.NewAuthHandler(cfg.JWT.Secret, cfg.JWT.TTLHours)
 	quizHandler := handlers.NewQuizHandler(cfg.Pagination.DefaultPageSize, cfg.Pagination.MaxPageSize)
 	answerHandler := handlers.NewAnswerHandler(cfg.Pagination.DefaultPageSize, cfg.Pagination.MaxPageSize)
 	likeHandler := handlers.NewLikeHandler()
@@ -32,6 +33,14 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 
 	v1 := r.Group("/api/v1")
 	{
+		// Auth routes
+		auth := v1.Group("/auth")
+		{
+			auth.POST("/register", authHandler.Register)
+			auth.POST("/login", authHandler.Login)
+			auth.GET("/me", middleware.JWTAuthMiddleware(cfg.JWT.Secret), authHandler.GetMe)
+		}
+
 		// Quiz routes
 		quizzes := v1.Group("/quizzes")
 		{

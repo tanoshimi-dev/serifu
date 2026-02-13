@@ -10,6 +10,7 @@ import '../widgets/section_header.dart';
 import '../widgets/bottom_nav_bar.dart';
 import 'quiz_detail_screen.dart';
 import 'feed_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -67,6 +68,13 @@ class _HomeScreenState extends State<HomeScreen> {
         context,
         MaterialPageRoute(
           builder: (context) => FeedScreen(quiz: _quizzes.first),
+        ),
+      );
+    } else if (index == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const ProfileScreen(),
         ),
       );
     } else {
