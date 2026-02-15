@@ -11,6 +11,12 @@ import '../widgets/bottom_nav_bar.dart';
 import 'quiz_detail_screen.dart';
 import 'feed_screen.dart';
 import 'profile_screen.dart';
+import 'answer_detail_screen.dart';
+import 'comment_screen.dart';
+import 'user_profile_screen.dart';
+import 'category_quizzes_screen.dart';
+import 'rankings_screen.dart';
+import 'write_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -70,6 +76,13 @@ class _HomeScreenState extends State<HomeScreen> {
           builder: (context) => FeedScreen(quiz: _quizzes.first),
         ),
       );
+    } else if (index == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const WriteScreen(),
+        ),
+      );
     } else if (index == 3) {
       Navigator.push(
         context,
@@ -81,6 +94,41 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _currentNavIndex = index;
       });
+    }
+  }
+
+  Future<void> _toggleLike(Answer answer) async {
+    final isLiked = answer.isLiked ?? false;
+    final newLikeCount = isLiked ? answer.likeCount - 1 : answer.likeCount + 1;
+
+    setState(() {
+      final index = _trendingAnswers.indexWhere((a) => a.id == answer.id);
+      if (index != -1) {
+        _trendingAnswers[index] = answer.copyWith(
+          likeCount: newLikeCount,
+          isLiked: !isLiked,
+        );
+      }
+    });
+
+    try {
+      if (isLiked) {
+        await answerRepository.unlikeAnswer(answer.id);
+      } else {
+        await answerRepository.likeAnswer(answer.id);
+      }
+    } catch (e) {
+      setState(() {
+        final index = _trendingAnswers.indexWhere((a) => a.id == answer.id);
+        if (index != -1) {
+          _trendingAnswers[index] = answer;
+        }
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update like: $e')),
+        );
+      }
     }
   }
 
@@ -204,7 +252,17 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 24),
             ],
             if (_rankings.isNotEmpty) ...[
-              SectionHeader(title: 'Daily Rankings'),
+              SectionHeader(
+                title: 'Daily Rankings',
+                onSeeAll: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RankingsScreen(),
+                    ),
+                  );
+                },
+              ),
               const SizedBox(height: 12),
               _buildRankings(),
             ],
@@ -271,7 +329,31 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         children: _trendingAnswers.map((answer) {
-          return AnswerCard(answer: answer);
+          return AnswerCard(
+            answer: answer,
+            onLike: () => _toggleLike(answer),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AnswerDetailScreen(answer: answer),
+              ),
+            ),
+            onComment: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CommentScreen(answer: answer),
+              ),
+            ),
+            onUserTap: answer.user != null
+                ? () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            UserProfileScreen(userId: answer.userId),
+                      ),
+                    )
+                : null,
+          );
         }).toList(),
       ),
     );
@@ -284,26 +366,35 @@ class _HomeScreenState extends State<HomeScreen> {
         spacing: 8,
         runSpacing: 8,
         children: _categories.map((category) {
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppTheme.borderLight),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
-                ),
-              ],
+          return GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    CategoryQuizzesScreen(category: category),
+              ),
             ),
-            child: Text(
-              category.name,
-              style: const TextStyle(
-                color: AppTheme.textDark,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppTheme.borderLight),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Text(
+                category.name,
+                style: const TextStyle(
+                  color: AppTheme.textDark,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           );
@@ -323,78 +414,97 @@ class _HomeScreenState extends State<HomeScreen> {
           final avatarInitial = user?.avatarInitial ?? '?';
           final username = user?.displayName ?? '@unknown';
 
-          return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+          return GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AnswerDetailScreen(answer: answer),
+              ),
             ),
-            child: Row(
-              children: [
-                _buildRankBadge(rank),
-                const SizedBox(width: 12),
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: const BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                    shape: BoxShape.circle,
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                  child: Center(
-                    child: Text(
-                      avatarInitial,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
+                ],
+              ),
+              child: Row(
+                children: [
+                  _buildRankBadge(rank),
+                  const SizedBox(width: 12),
+                  GestureDetector(
+                    onTap: user != null
+                        ? () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    UserProfileScreen(userId: answer.userId),
+                              ),
+                            )
+                        : null,
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(
+                        gradient: AppTheme.primaryGradient,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          avatarInitial,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        username,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                          color: AppTheme.textDark,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          username,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            color: AppTheme.textDark,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        answer.content,
-                        style: const TextStyle(
-                          color: AppTheme.textGray,
-                          fontSize: 12,
+                        const SizedBox(height: 2),
+                        Text(
+                          answer.content,
+                          style: const TextStyle(
+                            color: AppTheme.textGray,
+                            fontSize: 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '${answer.likeCount}',
-                  style: const TextStyle(
-                    color: AppTheme.likeRed,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
+                  const SizedBox(width: 8),
+                  Text(
+                    '${answer.likeCount}',
+                    style: const TextStyle(
+                      color: AppTheme.likeRed,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         }).toList(),

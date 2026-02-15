@@ -9,6 +9,10 @@ import '../widgets/answer_card.dart';
 import '../widgets/bottom_nav_bar.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
+import 'answer_detail_screen.dart';
+import 'comment_screen.dart';
+import 'follow_list_screen.dart';
+import 'write_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -101,6 +105,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } else if (index == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const WriteScreen()),
       );
     }
   }
@@ -228,7 +237,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              ..._answers.map((answer) => AnswerCard(answer: answer)),
+              ..._answers.map((answer) => AnswerCard(
+                    answer: answer,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AnswerDetailScreen(answer: answer),
+                      ),
+                    ),
+                    onComment: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CommentScreen(answer: answer),
+                      ),
+                    ),
+                  )),
             ] else
               Center(
                 child: Padding(
@@ -311,8 +334,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _buildStatItem('${user.followerCount ?? 0}', 'Followers'),
-        _buildStatItem('${user.followingCount ?? 0}', 'Following'),
+        GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FollowListScreen(
+                userId: user.id,
+                isFollowers: true,
+              ),
+            ),
+          ),
+          behavior: HitTestBehavior.opaque,
+          child: _buildStatItem('${user.followerCount ?? 0}', 'Followers'),
+        ),
+        GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FollowListScreen(
+                userId: user.id,
+                isFollowers: false,
+              ),
+            ),
+          ),
+          behavior: HitTestBehavior.opaque,
+          child: _buildStatItem('${user.followingCount ?? 0}', 'Following'),
+        ),
         _buildStatItem('${user.answerCount ?? 0}', 'Answers'),
       ],
     );

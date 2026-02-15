@@ -55,6 +55,7 @@ class Answer {
 
   Answer copyWith({
     int? likeCount,
+    int? commentCount,
     bool? isLiked,
   }) {
     return Answer(
@@ -64,7 +65,7 @@ class Answer {
       user: user,
       content: content,
       likeCount: likeCount ?? this.likeCount,
-      commentCount: commentCount,
+      commentCount: commentCount ?? this.commentCount,
       viewCount: viewCount,
       status: status,
       createdAt: createdAt,

@@ -103,14 +103,20 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
                 onTap: () => Navigator.pop(context),
                 child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
               ),
-              Text(
-                widget.quiz.title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    widget.quiz.title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-                overflow: TextOverflow.ellipsis,
               ),
               const Icon(Icons.more_horiz, color: Colors.white, size: 24),
             ],

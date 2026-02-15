@@ -50,4 +50,26 @@ class User {
   String get avatarInitial => name.isNotEmpty ? name[0].toUpperCase() : '?';
 
   String get displayName => name.isNotEmpty ? '@$name' : '@unknown';
+
+  User copyWith({
+    int? followerCount,
+    int? followingCount,
+    bool? isFollowing,
+  }) {
+    return User(
+      id: id,
+      email: email,
+      name: name,
+      avatar: avatar,
+      bio: bio,
+      totalLikes: totalLikes,
+      status: status,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      followerCount: followerCount ?? this.followerCount,
+      followingCount: followingCount ?? this.followingCount,
+      answerCount: answerCount,
+      isFollowing: isFollowing ?? this.isFollowing,
+    );
+  }
 }
