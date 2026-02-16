@@ -5,6 +5,7 @@ import '../models/user.dart';
 import '../repositories/quiz_repository.dart';
 import '../repositories/answer_repository.dart';
 import '../repositories/auth_repository.dart';
+import '../repositories/notification_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/quiz_card_compact.dart';
 import '../widgets/section_header.dart';
@@ -12,6 +13,7 @@ import '../widgets/bottom_nav_bar.dart';
 import 'quiz_detail_screen.dart';
 import 'feed_screen.dart';
 import 'profile_screen.dart';
+import 'notification_screen.dart';
 import 'answer_detail_screen.dart';
 import 'user_profile_screen.dart';
 import 'rankings_screen.dart';
@@ -32,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _selectedCategoryId;
   List<Answer> _rankings = [];
   User? _currentUser;
+  int _unreadNotificationCount = 0;
   bool _isLoading = true;
   bool _isTrendingLoading = false;
   String? _error;
@@ -55,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
         quizRepository.getCategories(),
         answerRepository.getRankings(period: 'daily', pageSize: 3),
         authRepository.getMe(),
+        notificationRepository.getUnreadCount(),
       ]);
       setState(() {
         _quizzes = results[0] as List<Quiz>;
@@ -62,6 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _categories = results[2] as List<Category>;
         _rankings = results[3] as List<Answer>;
         _currentUser = results[4] as User;
+        _unreadNotificationCount = results[5] as int;
         _selectedCategoryId = null;
         _isLoading = false;
       });
@@ -94,6 +99,13 @@ class _HomeScreenState extends State<HomeScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
+          builder: (context) => const NotificationScreen(),
+        ),
+      ).then((_) => _loadUnreadCount());
+    } else if (index == 4) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
           builder: (context) => const ProfileScreen(),
         ),
       );
@@ -102,6 +114,13 @@ class _HomeScreenState extends State<HomeScreen> {
         _currentNavIndex = index;
       });
     }
+  }
+
+  Future<void> _loadUnreadCount() async {
+    try {
+      final count = await notificationRepository.getUnreadCount();
+      setState(() => _unreadNotificationCount = count);
+    } catch (_) {}
   }
 
   void _onCategoryChanged(String? categoryId) {
@@ -152,6 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavBar(
             currentIndex: _currentNavIndex,
             onTap: _onNavTap,
+            notificationBadge: _unreadNotificationCount,
           ),
         ],
       ),
@@ -180,10 +200,48 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               Row(
-                children: const [
-                  Icon(Icons.notifications_outlined, color: Colors.white, size: 24),
-                  SizedBox(width: 15),
-                  Icon(Icons.person_outline, color: Colors.white, size: 24),
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationScreen(),
+                        ),
+                      ).then((_) => _loadUnreadCount());
+                    },
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        const Icon(Icons.notifications_outlined, color: Colors.white, size: 24),
+                        if (_unreadNotificationCount > 0)
+                          Positioned(
+                            right: -6,
+                            top: -4,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: AppTheme.likeRed,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              constraints: const BoxConstraints(minWidth: 16, minHeight: 14),
+                              child: Center(
+                                child: Text(
+                                  _unreadNotificationCount > 99 ? '99+' : '$_unreadNotificationCount',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  const Icon(Icons.person_outline, color: Colors.white, size: 24),
                 ],
               ),
             ],

@@ -150,6 +150,20 @@ type AdminAuditLog struct {
 	AdminUser *AdminUser `gorm:"foreignKey:AdminUserID"`
 }
 
+type Notification struct {
+	ID         uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID     uuid.UUID `gorm:"type:uuid;index;not null" json:"user_id"`
+	ActorID    uuid.UUID `gorm:"type:uuid;index;not null" json:"actor_id"`
+	Type       string    `gorm:"size:20;not null" json:"type"`
+	TargetType string    `gorm:"size:20" json:"target_type"`
+	TargetID   uuid.UUID `gorm:"type:uuid" json:"target_id"`
+	IsRead     bool      `gorm:"default:false" json:"is_read"`
+	CreatedAt  time.Time `json:"created_at"`
+
+	User  *User `gorm:"foreignKey:UserID" json:"-"`
+	Actor *User `gorm:"foreignKey:ActorID" json:"actor,omitempty"`
+}
+
 func (Like) TableName() string {
 	return "likes"
 }

@@ -64,6 +64,8 @@ func (h *LikeHandler) LikeAnswer(c *gin.Context) {
 		db.Model(&answerUser).Update("total_likes", answerUser.TotalLikes+1)
 	}
 
+	CreateNotification(db, answer.UserID, userUUID, "like", "answer", answerUUID)
+
 	utils.CreatedResponse(c, gin.H{"message": "Answer liked successfully"})
 }
 

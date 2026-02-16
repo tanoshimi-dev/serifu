@@ -10,6 +10,7 @@ import 'answer_detail_screen.dart';
 import 'comment_screen.dart';
 import 'user_profile_screen.dart';
 import 'write_screen.dart';
+import 'notification_screen.dart';
 import 'profile_screen.dart';
 
 class FeedScreen extends StatefulWidget {
@@ -182,6 +183,13 @@ class _FeedScreenState extends State<FeedScreen> {
                   ),
                 );
               } else if (index == 3) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationScreen(),
+                  ),
+                );
+              } else if (index == 4) {
                 Navigator.push(
                   context,
                   MaterialPageRoute(

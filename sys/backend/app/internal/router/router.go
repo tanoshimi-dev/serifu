@@ -31,6 +31,7 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 	userHandler := handlers.NewUserHandler(cfg.Pagination.DefaultPageSize, cfg.Pagination.MaxPageSize)
 	followHandler := handlers.NewFollowHandler(cfg.Pagination.DefaultPageSize, cfg.Pagination.MaxPageSize)
 	rankingHandler := handlers.NewRankingHandler(cfg.Pagination.DefaultPageSize, cfg.Pagination.MaxPageSize)
+	notificationHandler := handlers.NewNotificationHandler(cfg.Pagination.DefaultPageSize, cfg.Pagination.MaxPageSize)
 
 	v1 := r.Group("/api/v1")
 	{
@@ -107,6 +108,14 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			rankings.GET("/daily", rankingHandler.GetDailyRankings)
 			rankings.GET("/weekly", rankingHandler.GetWeeklyRankings)
 			rankings.GET("/all-time", rankingHandler.GetAllTimeRankings)
+		}
+
+		// Notification routes
+		notifications := v1.Group("/notifications")
+		{
+			notifications.GET("", notificationHandler.GetNotifications)
+			notifications.PUT("/read-all", notificationHandler.MarkAllAsRead)
+			notifications.GET("/unread-count", notificationHandler.GetUnreadCount)
 		}
 
 		// Category routes

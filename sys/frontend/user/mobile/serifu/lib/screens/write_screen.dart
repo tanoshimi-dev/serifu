@@ -4,6 +4,7 @@ import '../repositories/quiz_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/bottom_nav_bar.dart';
 import 'home_screen.dart';
+import 'notification_screen.dart';
 import 'profile_screen.dart';
 import 'quiz_detail_screen.dart';
 
@@ -121,6 +122,11 @@ class _WriteScreenState extends State<WriteScreen> {
         MaterialPageRoute(builder: (context) => const HomeScreen()),
       );
     } else if (index == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const NotificationScreen()),
+      );
+    } else if (index == 4) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const ProfileScreen()),

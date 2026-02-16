@@ -70,6 +70,8 @@ func (h *FollowHandler) FollowUser(c *gin.Context) {
 		return
 	}
 
+	CreateNotification(db, targetUUID, followerUUID, "follow", "user", targetUUID)
+
 	utils.CreatedResponse(c, gin.H{"message": "User followed successfully"})
 }
 

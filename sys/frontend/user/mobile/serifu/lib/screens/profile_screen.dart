@@ -9,6 +9,7 @@ import '../widgets/answer_card.dart';
 import '../widgets/bottom_nav_bar.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
+import 'notification_screen.dart';
 import 'answer_detail_screen.dart';
 import 'comment_screen.dart';
 import 'follow_list_screen.dart';
@@ -111,6 +112,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         context,
         MaterialPageRoute(builder: (context) => const WriteScreen()),
       );
+    } else if (index == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const NotificationScreen()),
+      );
     }
   }
 
@@ -122,7 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildHeader(),
           Expanded(child: _buildContent()),
           BottomNavBar(
-            currentIndex: 3,
+            currentIndex: 4,
             onTap: _onNavTap,
           ),
         ],

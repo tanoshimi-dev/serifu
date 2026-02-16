@@ -111,6 +111,8 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 
 	db.Preload("User").First(&comment, "id = ?", comment.ID)
 
+	CreateNotification(db, answer.UserID, userUUID, "comment", "answer", answerUUID)
+
 	utils.CreatedResponse(c, comment)
 }
 

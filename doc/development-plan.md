@@ -12,8 +12,8 @@ Serifu (セリフ) は、AIが生成するシチュエーションクイズに�
 
 | コンポーネント | 技術スタック | 完成度 | 状態 |
 |---------------|-------------|--------|------|
-| Backend API | Go + Gin + GORM + PostgreSQL | ~90% | 主要API完成、通知API未実装 |
-| Mobile App | Flutter + Provider | ~80% | 13画面実装済、UI改善中 |
+| Backend API | Go + Gin + GORM + PostgreSQL | ~95% | 主要API完成、通知API実装済み |
+| Mobile App | Flutter + Provider | ~85% | 14画面実装済 (通知画面追加)、UI改善中 |
 | Web App | (未着手) | 0% | 構想のみ |
 | Landing Page | Vue 3 + Vite | ~20% | 基本構造のみ |
 | Admin Panel | Go templ | ~60% | クイズ管理・ユーザー管理 |
@@ -31,10 +31,10 @@ Serifu (セリフ) は、AIが生成するシチュエーションクイズに�
 - 回答シェア機能
 - 管理者ダッシュボード
 - ソーシャルログイン (Google / Apple / LINE)
+- 通知機能 (いいね・コメント・フォロー通知)
 
 ### 未実装の機能
 
-- 通知機能 (いいね・コメント・フォロー通知)
 - プロフィール画像アップロード
 - プッシュ通知 (FCM)
 - フォロー中ユーザーのタイムライン
@@ -144,7 +144,7 @@ DELETE /api/v1/users/me/social-accounts/:provider # ソーシャル連携解除
 - **Apple**: Apple Developer Portal で Sign in with Apple 設定、Service ID作成
 - **LINE**: LINE Developers Console でチャネル作成、Callback URL設定
 
-#### 1-2. 通知システム (Backend + Mobile)
+#### 1-2. 通知システム (Backend + Mobile) ✅ 実装済み
 
 **Backend 追加API:**
 
@@ -419,7 +419,7 @@ POST   /api/v1/quizzes/:id/hint       # AIヒント生成
 ```
 Phase 1 (最優先)
 ├── 1-1. ソーシャルログイン    ✅ 実装済み (Google/Apple/LINE)
-├── 1-2. 通知システム          ← SNSとして必須
+├── 1-2. 通知システム          ✅ 実装済み
 ├── 1-3. プロフィール画像      ← ユーザー体験に直結
 ├── 1-4. フォロータイムライン  ← SNS感を強化
 ├── 1-5. UI/UX仕上げ          ← 公開品質に必要
@@ -450,3 +450,4 @@ Phase 4 (差別化)
 | 2026-02-16 | 初版作成 |
 | 2026-02-16 | Phase 1 にソーシャルログイン (Google/Apple/LINE) を追加 |
 | 2026-02-17 | ソーシャルログイン実装完了に伴い 1-1 に移動、他ステップの順序を更新 |
+| 2026-02-17 | 通知システム (1-2) 実装完了: Backend通知API + Mobile通知画面 + BottomNavBarバッジ |
