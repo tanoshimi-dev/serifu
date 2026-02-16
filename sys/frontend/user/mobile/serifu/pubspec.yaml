@@ -44,6 +44,9 @@ dependencies:
   # Local storage for auth tokens
   shared_preferences: ^2.3.0
 
+  # Share content to other apps
+  share_plus: ^10.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

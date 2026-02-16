@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/answer.dart';
 import '../theme/app_theme.dart';
 
@@ -133,10 +134,16 @@ class AnswerCard extends StatelessWidget {
                     onTap: onComment,
                   ),
                   const SizedBox(width: 20),
-                  const _ActionButton(
+                  _ActionButton(
                     icon: Icons.share,
                     label: 'Share',
                     color: AppTheme.textLight,
+                    onTap: () {
+                      final username = user?.displayName ?? '@unknown';
+                      final text =
+                          '「${answer.content}」\n— $username\n\n#serifu';
+                      Share.share(text);
+                    },
                   ),
                 ],
               ),
