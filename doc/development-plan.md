@@ -35,6 +35,7 @@ Serifu (セリフ) は、AIが生成するシチュエーションクイズに�
 
 - 通知機能 (いいね・コメント・フォロー通知)
 - プロフィール画像アップロード
+- ソーシャルログイン (Google / Apple / LINE)
 - プッシュ通知 (FCM)
 - フォロー中ユーザーのタイムライン
 - Web版アプリ
@@ -143,7 +144,76 @@ GET    /api/v1/notifications/unread-count # 未読数 (認証必須)
 - スプラッシュスクリーン
 - アプリアイコン設定
 
-#### 1-5. テスト公開準備
+#### 1-5. ソーシャルログイン (Google / Apple / LINE)
+
+ユーザー登録・ログインのハードルを下げるため、ソーシャルログインを導入する。
+
+**Backend:**
+
+```
+# 新規テーブル
+social_accounts:
+  - id (UUID)
+  - user_id (UUID)           # usersテーブルへの外部キー
+  - provider (string)        # google, apple, line
+  - provider_user_id (string) # 各プロバイダーのユーザーID
+  - email (string, nullable)
+  - display_name (string, nullable)
+  - avatar_url (string, nullable)
+  - access_token (string)
+  - refresh_token (string, nullable)
+  - token_expires_at (timestamp, nullable)
+  - created_at (timestamp)
+  - updated_at (timestamp)
+
+# UNIQUE制約: (provider, provider_user_id)
+
+# 新規エンドポイント
+POST   /api/v1/auth/google    # Googleログイン (IDトークン検証)
+POST   /api/v1/auth/apple     # Appleログイン (認証コード検証)
+POST   /api/v1/auth/line      # LINEログイン (認証コード検証)
+GET    /api/v1/users/me/social-accounts  # 連携済みソーシャルアカウント一覧
+POST   /api/v1/users/me/social-accounts/link    # 既存アカウントにソーシャル連携追加
+DELETE /api/v1/users/me/social-accounts/:provider # ソーシャル連携解除
+```
+
+**各プロバイダーの認証フロー:**
+
+| プロバイダー | モバイル側 | Backend検証 |
+|-------------|-----------|------------|
+| Google | `google_sign_in` パッケージでIDトークン取得 | Google公開鍵でIDトークン検証 |
+| Apple | `sign_in_with_apple` パッケージで認証コード取得 | Apple TokenエンドポイントでIDトークン取得・検証 |
+| LINE | `flutter_line_sdk` パッケージでアクセストークン取得 | LINE Profile APIでユーザー情報取得・検証 |
+
+**Backend 実装詳細:**
+
+- `social_auth.go` ハンドラー追加
+- 各プロバイダーごとの検証ロジック:
+  - **Google**: `google.golang.org/api/idtoken` でIDトークン検証
+  - **Apple**: JWKSエンドポイントから公開鍵取得、JWTを検証
+  - **LINE**: アクセストークンを使って `https://api.line.me/v2/profile` を呼び出し
+- 共通処理: プロバイダーユーザーIDで既存ユーザー検索 → 存在すればログイン、なければ新規作成
+- 既存メール/パスワードアカウントとの連携 (同一メールアドレスの場合は自動リンク)
+- JWTトークン発行 (既存の認証フローと統一)
+
+**Mobile 実装:**
+
+- ログイン画面にソーシャルログインボタン追加 (Google / Apple / LINE)
+- 各プロバイダーのFlutterパッケージ導入:
+  - `google_sign_in` (Google)
+  - `sign_in_with_apple` (Apple)
+  - `flutter_line_sdk` (LINE)
+- `SocialAuthRepository` 追加
+- 設定画面にソーシャルアカウント連携管理UI追加
+- Apple Sign In は iOS のみ表示 (Appleガイドライン準拠)
+
+**各プロバイダーのセットアップ:**
+
+- **Google**: Google Cloud Console でOAuth 2.0クライアントID作成 (iOS / Android / Web)
+- **Apple**: Apple Developer Portal で Sign in with Apple 設定、Service ID作成
+- **LINE**: LINE Developers Console でチャネル作成、Callback URL設定
+
+#### 1-6. テスト公開準備
 
 - iOS: TestFlight配信設定
 - Android: Google Play内部テスト設定
@@ -326,6 +396,7 @@ POST   /api/v1/quizzes/:id/hint       # AIヒント生成
 - **通知のリアルタイム性**: 初期はポーリング、将来的にWebSocket導入を検討
 - **バッジ判定**: 非同期ジョブ (cron) で定期チェック、またはイベント駆動で即時判定
 - **レート制限**: APIにレート制限を追加 (特にAIヒント機能)
+- **ソーシャルログイン**: 各プロバイダーのクライアントID/シークレットは環境変数で管理。Apple Sign In はiOS必須 (App Store審査要件)、LINE は日本市場向けに重要
 
 ### Mobile / Web
 
@@ -351,7 +422,8 @@ Phase 1 (最優先)
 ├── 1-2. プロフィール画像      ← ユーザー体験に直結
 ├── 1-3. フォロータイムライン  ← SNS感を強化
 ├── 1-4. UI/UX仕上げ          ← 公開品質に必要
-└── 1-5. テスト公開           ← フィードバック収集
+├── 1-5. ソーシャルログイン    ← 登録ハードル低減 (Google/Apple/LINE)
+└── 1-6. テスト公開           ← フィードバック収集
 
 Phase 2
 ├── 2-1. レスポンシブ対応      ← Web版の基盤
@@ -376,3 +448,4 @@ Phase 4 (差別化)
 | 日付 | 内容 |
 |------|------|
 | 2026-02-16 | 初版作成 |
+| 2026-02-16 | Phase 1 にソーシャルログイン (Google/Apple/LINE) を追加 |
