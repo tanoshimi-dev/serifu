@@ -49,6 +49,7 @@ func RunMigrations() error {
 		&Follow{},
 		&AdminUser{},
 		&AdminAuditLog{},
+		&SocialAccount{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
@@ -57,6 +58,7 @@ func RunMigrations() error {
 	// Create unique constraints
 	DB.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_likes_answer_user ON likes(answer_id, user_id)")
 	DB.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_follows_follower_following ON follows(follower_id, following_id)")
+	DB.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_social_accounts_provider_provider_id ON social_accounts(provider, provider_id)")
 
 	log.Println("Database migrations completed")
 	return nil

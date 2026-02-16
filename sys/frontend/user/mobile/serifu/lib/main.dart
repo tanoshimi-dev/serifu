@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_line_sdk/flutter_line_sdk.dart';
 import 'services/auth_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load();
+  await LineSDK.instance.setup(dotenv.env['LINE_CHANNEL_ID']!);
   runApp(const SerifuApp());
 }
 

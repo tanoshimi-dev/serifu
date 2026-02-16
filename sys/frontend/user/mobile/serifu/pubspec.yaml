@@ -44,8 +44,16 @@ dependencies:
   # Local storage for auth tokens
   shared_preferences: ^2.3.0
 
+  # Environment variables
+  flutter_dotenv: ^5.2.1
+
   # Share content to other apps
   share_plus: ^10.1.4
+
+  # Social login
+  google_sign_in: ^6.2.1
+  sign_in_with_apple: ^6.1.0
+  flutter_line_sdk: ^2.3.7
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +76,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - .env
 
   # To add assets to your application, add an assets section, like this:
   # assets:

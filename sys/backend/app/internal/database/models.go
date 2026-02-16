@@ -23,8 +23,9 @@ type User struct {
 	Answers   []Answer  `gorm:"foreignKey:UserID" json:"-"`
 	Comments  []Comment `gorm:"foreignKey:UserID" json:"-"`
 	Likes     []Like    `gorm:"foreignKey:UserID" json:"-"`
-	Followers []Follow  `gorm:"foreignKey:FollowingID" json:"-"`
-	Following []Follow  `gorm:"foreignKey:FollowerID" json:"-"`
+	Followers      []Follow        `gorm:"foreignKey:FollowingID" json:"-"`
+	Following      []Follow        `gorm:"foreignKey:FollowerID" json:"-"`
+	SocialAccounts []SocialAccount `gorm:"foreignKey:UserID" json:"-"`
 }
 
 type Category struct {
@@ -109,6 +110,20 @@ type Follow struct {
 
 	Follower  *User `gorm:"foreignKey:FollowerID" json:"follower,omitempty"`
 	Following *User `gorm:"foreignKey:FollowingID" json:"following,omitempty"`
+}
+
+type SocialAccount struct {
+	ID         uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID     uuid.UUID `gorm:"type:uuid;index;not null" json:"user_id"`
+	Provider   string    `gorm:"size:20;not null" json:"provider"`
+	ProviderID string    `gorm:"not null" json:"provider_id"`
+	Email      string    `json:"email"`
+	Name       string    `json:"name"`
+	Avatar     string    `json:"avatar"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+
+	User *User `gorm:"foreignKey:UserID" json:"user,omitempty"`
 }
 
 type AdminUser struct {

@@ -13,6 +13,13 @@ type Config struct {
 	Pagination PaginationConfig
 	Admin      AdminConfig
 	JWT        JWTConfig
+	SocialAuth SocialAuthConfig
+}
+
+type SocialAuthConfig struct {
+	GoogleClientID string
+	AppleClientID  string
+	LineChannelID  string
 }
 
 type JWTConfig struct {
@@ -71,6 +78,11 @@ func Load() *Config {
 		JWT: JWTConfig{
 			Secret:   getEnv("JWT_SECRET", "serifu-jwt-secret-change-me"),
 			TTLHours: getEnvInt("JWT_TTL_HOURS", 72),
+		},
+		SocialAuth: SocialAuthConfig{
+			GoogleClientID: getEnv("GOOGLE_CLIENT_ID", ""),
+			AppleClientID:  getEnv("APPLE_CLIENT_ID", ""),
+			LineChannelID:  getEnv("LINE_CHANNEL_ID", ""),
 		},
 	}
 }

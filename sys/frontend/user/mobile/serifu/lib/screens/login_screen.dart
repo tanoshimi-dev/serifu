@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import '../repositories/auth_repository.dart';
 import '../services/auth_service.dart';
+import '../services/social_auth_service.dart';
 import '../theme/app_theme.dart';
 import 'register_screen.dart';
 import 'home_screen.dart';
@@ -17,8 +20,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _socialLoading = false;
   String? _error;
   bool _obscurePassword = true;
+
+  bool get _anyLoading => _isLoading || _socialLoading;
 
   @override
   void dispose() {
@@ -57,6 +63,36 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleSocialLogin(Future<void> Function() loginFn) async {
+    setState(() {
+      _socialLoading = true;
+      _error = null;
+    });
+
+    try {
+      await loginFn();
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString().replaceAll('Exception: ', '');
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _socialLoading = false;
         });
       }
     }
@@ -153,11 +189,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     Container(
                       height: 52,
                       decoration: BoxDecoration(
-                        gradient: AppTheme.primaryGradient,
+                        gradient: _anyLoading ? null : AppTheme.primaryGradient,
+                        color: _anyLoading ? Colors.grey.shade300 : null,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _login,
+                        onPressed: _anyLoading ? null : _login,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
@@ -184,6 +221,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                       ),
                     ),
+                    const SizedBox(height: 24),
+                    _buildSocialDivider(),
+                    const SizedBox(height: 24),
+                    _buildSocialButtons(),
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -217,10 +258,97 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
-              ),
+            ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSocialDivider() {
+    return Row(
+      children: [
+        Expanded(child: Divider(color: AppTheme.borderLight)),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'or continue with',
+            style: TextStyle(
+              color: AppTheme.textLight,
+              fontSize: 13,
+            ),
+          ),
+        ),
+        Expanded(child: Divider(color: AppTheme.borderLight)),
+      ],
+    );
+  }
+
+  Widget _buildSocialButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _socialButton(
+          onTap: () => _handleSocialLogin(() => socialAuthService.signInWithGoogle()),
+          color: const Color(0xFFDB4437),
+          icon: Icons.g_mobiledata,
+          label: 'Google',
+        ),
+        if (Platform.isIOS) ...[
+          const SizedBox(width: 16),
+          _socialButton(
+            onTap: () => _handleSocialLogin(() => socialAuthService.signInWithApple()),
+            color: Colors.black,
+            icon: Icons.apple,
+            label: 'Apple',
+          ),
+        ],
+        const SizedBox(width: 16),
+        _socialButton(
+          onTap: () => _handleSocialLogin(() => socialAuthService.signInWithLine()),
+          color: const Color(0xFF06C755),
+          icon: Icons.chat_bubble,
+          label: 'LINE',
+        ),
+      ],
+    );
+  }
+
+  Widget _socialButton({
+    required VoidCallback onTap,
+    required Color color,
+    required IconData icon,
+    required String label,
+  }) {
+    return Opacity(
+      opacity: _anyLoading ? 0.5 : 1.0,
+      child: InkWell(
+        onTap: _anyLoading ? null : onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 80,
+          height: 56,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: Colors.white, size: 24),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

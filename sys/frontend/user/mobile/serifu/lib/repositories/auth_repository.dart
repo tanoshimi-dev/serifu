@@ -33,6 +33,42 @@ class AuthRepository {
     );
   }
 
+  Future<({String token, User user})> googleLogin(String idToken, {String? name}) async {
+    final response = await _client.post('/auth/google', body: {
+      'token': idToken,
+      if (name != null) 'name': name,
+    });
+    final data = response['data'] as Map<String, dynamic>;
+    return (
+      token: data['token'] as String,
+      user: User.fromJson(data['user'] as Map<String, dynamic>),
+    );
+  }
+
+  Future<({String token, User user})> appleLogin(String identityToken, {String? name}) async {
+    final response = await _client.post('/auth/apple', body: {
+      'token': identityToken,
+      if (name != null) 'name': name,
+    });
+    final data = response['data'] as Map<String, dynamic>;
+    return (
+      token: data['token'] as String,
+      user: User.fromJson(data['user'] as Map<String, dynamic>),
+    );
+  }
+
+  Future<({String token, User user})> lineLogin(String accessToken, {String? name}) async {
+    final response = await _client.post('/auth/line', body: {
+      'token': accessToken,
+      if (name != null) 'name': name,
+    });
+    final data = response['data'] as Map<String, dynamic>;
+    return (
+      token: data['token'] as String,
+      user: User.fromJson(data['user'] as Map<String, dynamic>),
+    );
+  }
+
   Future<User> getMe() async {
     final response = await _client.get('/auth/me');
     return User.fromJson(response['data'] as Map<String, dynamic>);
