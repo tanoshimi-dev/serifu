@@ -56,7 +56,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>line3rdp.2009144840</string>
+				<string>line3rdp.app.dev.serifu</string>
 			</array>
 		</dict>
 	</array>

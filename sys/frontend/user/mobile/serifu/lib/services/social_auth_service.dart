@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -79,7 +80,17 @@ class SocialAuthService {
 
   /// Sign in with LINE. Returns the authenticated user.
   Future<User> signInWithLine() async {
-    final loginResult = await LineSDK.instance.login();
+    final LoginResult loginResult;
+    try {
+      loginResult = await LineSDK.instance.login(
+        scopes: ['profile'],
+      );
+    } on PlatformException catch (e) {
+      if (e.code == 'CANCEL') {
+        throw Exception('Login cancelled');
+      }
+      rethrow;
+    }
 
     final accessToken = loginResult.accessToken.value;
     final profile = loginResult.userProfile;

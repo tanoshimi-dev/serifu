@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class ApiException implements Exception {
@@ -13,10 +14,14 @@ class ApiException implements Exception {
 }
 
 class ApiClient {
-  // For Android emulator, use 10.0.2.2 to access host machine's localhost
-  // For iOS simulator, use localhost or 127.0.0.1
-  // For physical device, use your computer's IP address
+  // Use API_BASE_URL from .env if set, otherwise fall back to defaults:
+  // - Android emulator: 10.0.2.2 to access host machine's localhost
+  // - iOS simulator: localhost
   static String get baseUrl {
+    final envUrl = dotenv.env['API_BASE_URL'];
+    if (envUrl != null && envUrl.isNotEmpty) {
+      return envUrl;
+    }
     if (Platform.isAndroid) {
       return 'http://10.0.2.2:8080/api/v1';
     }

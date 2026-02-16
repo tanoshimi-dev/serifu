@@ -92,7 +92,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.toString().replaceAll('Exception: ', '');
+          final msg = e.toString();
+          final lower = msg.toLowerCase();
+          if (lower.contains('cancelled') || lower.contains('canceled') || lower.contains('cancel')) {
+            _error = null; // User cancelled, no error to show
+          } else if (lower.contains('connection refused') || lower.contains('socketexception')) {
+            _error = 'Unable to connect to the server. Please try again later.';
+          } else {
+            _error = msg.replaceAll('Exception: ', '');
+          }
         });
       }
     } finally {
