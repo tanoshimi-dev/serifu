@@ -30,12 +30,12 @@ Serifu (セリフ) は、AIが生成するシチュエーションクイズに�
 - トレンド表示
 - 回答シェア機能
 - 管理者ダッシュボード
+- ソーシャルログイン (Google / Apple / LINE)
 
 ### 未実装の機能
 
 - 通知機能 (いいね・コメント・フォロー通知)
 - プロフィール画像アップロード
-- ソーシャルログイン (Google / Apple / LINE)
 - プッシュ通知 (FCM)
 - フォロー中ユーザーのタイムライン
 - Web版アプリ
@@ -75,76 +75,7 @@ Serifu (セリフ) は、AIが生成するシチュエーションクイズに�
 
 **目標**: 既存モバイルアプリを完成させ、テスト公開できる状態にする
 
-#### 1-1. 通知システム (Backend + Mobile)
-
-**Backend 追加API:**
-
-```
-# 新規テーブル
-notifications:
-  - id (UUID)
-  - user_id (UUID)        # 通知を受け取るユーザー
-  - actor_id (UUID)       # アクションを起こしたユーザー
-  - type (string)         # like, comment, follow
-  - target_type (string)  # answer, comment, user
-  - target_id (UUID)      # 対象のID
-  - is_read (bool)        # 既読フラグ
-  - created_at (timestamp)
-
-# 新規エンドポイント
-GET    /api/v1/notifications          # 通知一覧 (認証必須)
-PUT    /api/v1/notifications/read-all # 全件既読 (認証必須)
-GET    /api/v1/notifications/unread-count # 未読数 (認証必須)
-```
-
-**Mobile 実装:**
-- `NotificationScreen` 画面追加
-- `NotificationRepository` 追加
-- `NotificationModel` 追加
-- BottomNavigationBar にバッジ表示 (未読数)
-- 通知タップで該当画面に遷移
-
-**Backend 実装:**
-- `Notification` モデル追加 (GORM)
-- `notification.go` ハンドラー追加
-- いいね・コメント・フォロー時に通知レコード自動作成
-- ルーターに通知エンドポイント追加
-
-#### 1-2. プロフィール画像アップロード
-
-**Backend:**
-- `POST /api/v1/users/avatar` エンドポイント追加
-- マルチパートフォームデータ対応
-- 画像保存先: ローカルストレージ or S3互換 (MinIO)
-- 画像リサイズ処理 (サムネイル生成)
-- 静的ファイル配信設定
-
-**Mobile:**
-- `image_picker` パッケージ追加
-- プロフィール画面に画像選択・アップロードUI
-- カメラ or ギャラリーから選択
-
-#### 1-3. フォロータイムライン
-
-**Backend:**
-- `GET /api/v1/timeline` エンドポイント追加
-- フォロー中ユーザーの回答を時系列で取得
-- ページネーション対応
-
-**Mobile:**
-- Feed画面にタブ追加: 「全体」「フォロー中」
-- Pull-to-refresh対応
-
-#### 1-4. UI/UX仕上げ
-
-- ホーム画面のデザイン統一
-- カラーパレット適用 (Primary: #6C5CE7)
-- ローディングインジケーター追加
-- エラー画面・空状態の表示改善
-- スプラッシュスクリーン
-- アプリアイコン設定
-
-#### 1-5. ソーシャルログイン (Google / Apple / LINE)
+#### 1-1. ソーシャルログイン (Google / Apple / LINE) ✅ 実装済み
 
 ユーザー登録・ログインのハードルを下げるため、ソーシャルログインを導入する。
 
@@ -212,6 +143,75 @@ DELETE /api/v1/users/me/social-accounts/:provider # ソーシャル連携解除
 - **Google**: Google Cloud Console でOAuth 2.0クライアントID作成 (iOS / Android / Web)
 - **Apple**: Apple Developer Portal で Sign in with Apple 設定、Service ID作成
 - **LINE**: LINE Developers Console でチャネル作成、Callback URL設定
+
+#### 1-2. 通知システム (Backend + Mobile)
+
+**Backend 追加API:**
+
+```
+# 新規テーブル
+notifications:
+  - id (UUID)
+  - user_id (UUID)        # 通知を受け取るユーザー
+  - actor_id (UUID)       # アクションを起こしたユーザー
+  - type (string)         # like, comment, follow
+  - target_type (string)  # answer, comment, user
+  - target_id (UUID)      # 対象のID
+  - is_read (bool)        # 既読フラグ
+  - created_at (timestamp)
+
+# 新規エンドポイント
+GET    /api/v1/notifications          # 通知一覧 (認証必須)
+PUT    /api/v1/notifications/read-all # 全件既読 (認証必須)
+GET    /api/v1/notifications/unread-count # 未読数 (認証必須)
+```
+
+**Mobile 実装:**
+- `NotificationScreen` 画面追加
+- `NotificationRepository` 追加
+- `NotificationModel` 追加
+- BottomNavigationBar にバッジ表示 (未読数)
+- 通知タップで該当画面に遷移
+
+**Backend 実装:**
+- `Notification` モデル追加 (GORM)
+- `notification.go` ハンドラー追加
+- いいね・コメント・フォロー時に通知レコード自動作成
+- ルーターに通知エンドポイント追加
+
+#### 1-3. プロフィール画像アップロード
+
+**Backend:**
+- `POST /api/v1/users/avatar` エンドポイント追加
+- マルチパートフォームデータ対応
+- 画像保存先: ローカルストレージ or S3互換 (MinIO)
+- 画像リサイズ処理 (サムネイル生成)
+- 静的ファイル配信設定
+
+**Mobile:**
+- `image_picker` パッケージ追加
+- プロフィール画面に画像選択・アップロードUI
+- カメラ or ギャラリーから選択
+
+#### 1-4. フォロータイムライン
+
+**Backend:**
+- `GET /api/v1/timeline` エンドポイント追加
+- フォロー中ユーザーの回答を時系列で取得
+- ページネーション対応
+
+**Mobile:**
+- Feed画面にタブ追加: 「全体」「フォロー中」
+- Pull-to-refresh対応
+
+#### 1-5. UI/UX仕上げ
+
+- ホーム画面のデザイン統一
+- カラーパレット適用 (Primary: #6C5CE7)
+- ローディングインジケーター追加
+- エラー画面・空状態の表示改善
+- スプラッシュスクリーン
+- アプリアイコン設定
 
 #### 1-6. テスト公開準備
 
@@ -418,11 +418,11 @@ POST   /api/v1/quizzes/:id/hint       # AIヒント生成
 
 ```
 Phase 1 (最優先)
-├── 1-1. 通知システム          ← SNSとして必須
-├── 1-2. プロフィール画像      ← ユーザー体験に直結
-├── 1-3. フォロータイムライン  ← SNS感を強化
-├── 1-4. UI/UX仕上げ          ← 公開品質に必要
-├── 1-5. ソーシャルログイン    ← 登録ハードル低減 (Google/Apple/LINE)
+├── 1-1. ソーシャルログイン    ✅ 実装済み (Google/Apple/LINE)
+├── 1-2. 通知システム          ← SNSとして必須
+├── 1-3. プロフィール画像      ← ユーザー体験に直結
+├── 1-4. フォロータイムライン  ← SNS感を強化
+├── 1-5. UI/UX仕上げ          ← 公開品質に必要
 └── 1-6. テスト公開           ← フィードバック収集
 
 Phase 2
@@ -449,3 +449,4 @@ Phase 4 (差別化)
 |------|------|
 | 2026-02-16 | 初版作成 |
 | 2026-02-16 | Phase 1 にソーシャルログイン (Google/Apple/LINE) を追加 |
+| 2026-02-17 | ソーシャルログイン実装完了に伴い 1-1 に移動、他ステップの順序を更新 |
