@@ -233,6 +233,12 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             _buildGreeting(),
             const SizedBox(height: 24),
+            if (_categories.isNotEmpty) ...[
+              SectionHeader(title: 'Categories'),
+              const SizedBox(height: 12),
+              _buildCategoryGrid(),
+              const SizedBox(height: 24),
+            ],
             if (_quizzes.isNotEmpty) ...[
               SectionHeader(title: "Today's Quiz"),
               const SizedBox(height: 12),
@@ -243,12 +249,6 @@ class _HomeScreenState extends State<HomeScreen> {
               SectionHeader(title: 'Trending Answers'),
               const SizedBox(height: 12),
               _buildTrendingAnswers(),
-              const SizedBox(height: 24),
-            ],
-            if (_categories.isNotEmpty) ...[
-              SectionHeader(title: 'Categories'),
-              const SizedBox(height: 12),
-              _buildCategoryGrid(),
               const SizedBox(height: 24),
             ],
             if (_rankings.isNotEmpty) ...[
