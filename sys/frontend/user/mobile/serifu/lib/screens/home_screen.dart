@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import '../models/quiz.dart';
 import '../models/answer.dart';
+import '../models/user.dart';
 import '../repositories/quiz_repository.dart';
 import '../repositories/answer_repository.dart';
+import '../repositories/auth_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/quiz_card_compact.dart';
-import '../widgets/answer_card.dart';
 import '../widgets/section_header.dart';
 import '../widgets/bottom_nav_bar.dart';
 import 'quiz_detail_screen.dart';
 import 'feed_screen.dart';
 import 'profile_screen.dart';
 import 'answer_detail_screen.dart';
-import 'comment_screen.dart';
 import 'user_profile_screen.dart';
-import 'category_quizzes_screen.dart';
 import 'rankings_screen.dart';
 import 'write_screen.dart';
 
@@ -30,8 +29,11 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Quiz> _quizzes = [];
   List<Answer> _trendingAnswers = [];
   List<Category> _categories = [];
+  String? _selectedCategoryId;
   List<Answer> _rankings = [];
+  User? _currentUser;
   bool _isLoading = true;
+  bool _isTrendingLoading = false;
   String? _error;
 
   @override
@@ -52,12 +54,15 @@ class _HomeScreenState extends State<HomeScreen> {
         answerRepository.getTrendingAnswers(pageSize: 3),
         quizRepository.getCategories(),
         answerRepository.getRankings(period: 'daily', pageSize: 3),
+        authRepository.getMe(),
       ]);
       setState(() {
         _quizzes = results[0] as List<Quiz>;
         _trendingAnswers = results[1] as List<Answer>;
         _categories = results[2] as List<Category>;
         _rankings = results[3] as List<Answer>;
+        _currentUser = results[4] as User;
+        _selectedCategoryId = null;
         _isLoading = false;
       });
     } catch (e) {
@@ -69,11 +74,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onNavTap(int index) {
-    if (index == 1 && _quizzes.isNotEmpty) {
+    if (index == 1) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => FeedScreen(quiz: _quizzes.first),
+          builder: (context) => FeedScreen(
+            quiz: _quizzes.isNotEmpty ? _quizzes.first : null,
+          ),
         ),
       );
     } else if (index == 2) {
@@ -97,38 +104,39 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _toggleLike(Answer answer) async {
-    final isLiked = answer.isLiked ?? false;
-    final newLikeCount = isLiked ? answer.likeCount - 1 : answer.likeCount + 1;
+  void _onCategoryChanged(String? categoryId) {
+    if (categoryId == _selectedCategoryId) return;
+    setState(() => _selectedCategoryId = categoryId);
+    _loadTrendingByCategory();
+  }
 
-    setState(() {
-      final index = _trendingAnswers.indexWhere((a) => a.id == answer.id);
-      if (index != -1) {
-        _trendingAnswers[index] = answer.copyWith(
-          likeCount: newLikeCount,
-          isLiked: !isLiked,
-        );
-      }
-    });
+  Future<void> _loadTrendingByCategory() async {
+    setState(() => _isTrendingLoading = true);
 
     try {
-      if (isLiked) {
-        await answerRepository.unlikeAnswer(answer.id);
-      } else {
-        await answerRepository.likeAnswer(answer.id);
-      }
-    } catch (e) {
-      setState(() {
-        final index = _trendingAnswers.indexWhere((a) => a.id == answer.id);
-        if (index != -1) {
-          _trendingAnswers[index] = answer;
-        }
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update like: $e')),
+      final List<Answer> answers;
+      if (_selectedCategoryId != null) {
+        final quizzes = await quizRepository.getQuizzes(
+          categoryId: _selectedCategoryId,
         );
+        if (quizzes.isEmpty) {
+          answers = [];
+        } else {
+          final answerLists = await Future.wait(
+            quizzes.map((q) => answerRepository.getAnswersForQuiz(q.id, pageSize: 3)),
+          );
+          answers = answerLists.expand((list) => list).toList()
+            ..sort((a, b) => b.likeCount.compareTo(a.likeCount));
+        }
+      } else {
+        answers = await answerRepository.getTrendingAnswers(pageSize: 3);
       }
+      setState(() {
+        _trendingAnswers = answers;
+        _isTrendingLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isTrendingLoading = false);
     }
   }
 
@@ -232,11 +240,9 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.only(top: 20, bottom: 20),
           children: [
             _buildGreeting(),
-            const SizedBox(height: 24),
-            if (_categories.isNotEmpty) ...[
-              SectionHeader(title: 'Categories'),
-              const SizedBox(height: 12),
-              _buildCategoryGrid(),
+            const SizedBox(height: 16),
+            if (_currentUser != null) ...[
+              _buildStatsRow(),
               const SizedBox(height: 24),
             ],
             if (_quizzes.isNotEmpty) ...[
@@ -245,12 +251,14 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildQuizCarousel(),
               const SizedBox(height: 24),
             ],
-            if (_trendingAnswers.isNotEmpty) ...[
-              SectionHeader(title: 'Trending Answers'),
+            SectionHeader(title: 'Trending Answers'),
+            if (_categories.isNotEmpty) ...[
               const SizedBox(height: 12),
-              _buildTrendingAnswers(),
-              const SizedBox(height: 24),
+              _buildTrendingCategoryChips(),
             ],
+            const SizedBox(height: 12),
+            _buildTrendingQuotes(),
+            const SizedBox(height: 24),
             if (_rankings.isNotEmpty) ...[
               SectionHeader(
                 title: 'Daily Rankings',
@@ -324,77 +332,217 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildTrendingAnswers() {
+  Widget _buildStatsRow() {
+    final user = _currentUser!;
+    final rankIndex = _rankings.indexWhere((a) => a.userId == user.id);
+    final rankLabel = rankIndex != -1 ? '#${rankIndex + 1}' : '#—';
+
+    final stats = [
+      (icon: Icons.edit_note, value: '${user.answerCount ?? 0}', label: 'Answers'),
+      (icon: Icons.favorite, value: '${user.totalLikes}', label: 'Likes'),
+      (icon: Icons.people, value: '${user.followerCount ?? 0}', label: 'Followers'),
+      (icon: Icons.emoji_events, value: rankLabel, label: 'Ranking'),
+    ];
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: _trendingAnswers.map((answer) {
-          return AnswerCard(
-            answer: answer,
-            onLike: () => _toggleLike(answer),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AnswerDetailScreen(answer: answer),
+      child: Row(
+        children: stats.map((stat) {
+          return Expanded(
+            child: Container(
+              margin: EdgeInsets.only(
+                right: stat != stats.last ? 8 : 0,
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Icon(stat.icon, color: AppTheme.primaryStart, size: 22),
+                  const SizedBox(height: 6),
+                  Text(
+                    stat.value,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textDark,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    stat.label,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.textGray,
+                    ),
+                  ),
+                ],
               ),
             ),
-            onComment: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CommentScreen(answer: answer),
-              ),
-            ),
-            onUserTap: answer.user != null
-                ? () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            UserProfileScreen(userId: answer.userId),
-                      ),
-                    )
-                : null,
           );
         }).toList(),
       ),
     );
   }
 
-  Widget _buildCategoryGrid() {
+  Widget _buildTrendingCategoryChips() {
+    return SizedBox(
+      height: 32,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: _categories.length + 1,
+        itemBuilder: (context, index) {
+          final isAll = index == 0;
+          final category = isAll ? null : _categories[index - 1];
+          final isActive = isAll
+              ? _selectedCategoryId == null
+              : _selectedCategoryId == category!.id;
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () => _onCategoryChanged(category?.id),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: isActive ? AppTheme.primaryStart : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isActive ? AppTheme.primaryStart : AppTheme.borderLight,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  isAll ? 'All' : category!.name,
+                  style: TextStyle(
+                    color: isActive ? Colors.white : AppTheme.textGray,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTrendingQuotes() {
+    if (_isTrendingLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              color: AppTheme.primaryStart,
+              strokeWidth: 2,
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_trendingAnswers.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Text(
+          'No trending answers yet',
+          style: TextStyle(
+            color: AppTheme.textLight,
+            fontSize: 13,
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: _categories.map((category) {
+      child: Column(
+        children: _trendingAnswers.map((answer) {
+          final user = answer.user;
+          final avatarInitial = user?.avatarInitial ?? '?';
+
           return GestureDetector(
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) =>
-                    CategoryQuizzesScreen(category: category),
+                builder: (context) => AnswerDetailScreen(answer: answer),
               ),
             ),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.borderLight),
+                borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: Text(
-                category.name,
-                style: const TextStyle(
-                  color: AppTheme.textDark,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '「${answer.content}」',
+                      style: const TextStyle(
+                        color: AppTheme.textDark,
+                        fontSize: 14,
+                        height: 1.5,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: const BoxDecoration(
+                          gradient: AppTheme.primaryGradient,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            avatarInitial,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${answer.likeCount}',
+                        style: const TextStyle(
+                          color: AppTheme.likeRed,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           );

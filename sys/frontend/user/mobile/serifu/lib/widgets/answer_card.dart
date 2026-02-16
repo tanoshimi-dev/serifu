@@ -134,16 +134,20 @@ class AnswerCard extends StatelessWidget {
                     onTap: onComment,
                   ),
                   const SizedBox(width: 20),
-                  _ActionButton(
-                    icon: Icons.share,
-                    label: 'Share',
-                    color: AppTheme.textLight,
-                    onTap: () {
-                      final username = user?.displayName ?? '@unknown';
-                      final text =
-                          '「${answer.content}」\n— $username\n\n#serifu';
-                      Share.share(text);
-                    },
+                  Builder(
+                    builder: (context) => _ActionButton(
+                      icon: Icons.share,
+                      label: 'Share',
+                      color: AppTheme.textLight,
+                      onTap: () {
+                        final box = context.findRenderObject() as RenderBox;
+                        final rect = box.localToGlobal(Offset.zero) & box.size;
+                        final username = user?.displayName ?? '@unknown';
+                        final text =
+                            '「${answer.content}」\n— $username\n\n#serifu';
+                        Share.share(text, sharePositionOrigin: rect);
+                      },
+                    ),
                   ),
                 ],
               ),

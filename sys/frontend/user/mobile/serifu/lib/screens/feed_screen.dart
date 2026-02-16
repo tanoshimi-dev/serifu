@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/quiz.dart';
 import '../models/answer.dart';
+import '../repositories/quiz_repository.dart';
 import '../repositories/answer_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/answer_card.dart';
@@ -12,11 +13,11 @@ import 'write_screen.dart';
 import 'profile_screen.dart';
 
 class FeedScreen extends StatefulWidget {
-  final Quiz quiz;
+  final Quiz? quiz;
 
   const FeedScreen({
     super.key,
-    required this.quiz,
+    this.quiz,
   });
 
   @override
@@ -32,12 +33,68 @@ class _FeedScreenState extends State<FeedScreen> {
   ];
 
   List<Answer> _answers = [];
+  List<Category> _categories = [];
+  String? _selectedCategoryId;
   bool _isLoading = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    _loadFeed();
+  }
+
+  Future<void> _loadFeed() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final results = await Future.wait([
+        _fetchAnswers(),
+        quizRepository.getCategories(),
+      ]);
+      setState(() {
+        _answers = results[0] as List<Answer>;
+        _categories = results[1] as List<Category>;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<List<Answer>> _fetchAnswers() async {
+    if (widget.quiz != null) {
+      return answerRepository.getAnswersForQuiz(
+        widget.quiz!.id,
+        sort: _sortTabs[_selectedSortIndex].$2,
+      );
+    }
+
+    if (_selectedCategoryId != null) {
+      final quizzes = await quizRepository.getQuizzes(
+        categoryId: _selectedCategoryId,
+      );
+      if (quizzes.isEmpty) return [];
+      final answerLists = await Future.wait(
+        quizzes.map((q) => answerRepository.getAnswersForQuiz(q.id)),
+      );
+      final allAnswers = answerLists.expand((list) => list).toList();
+      allAnswers.sort((a, b) => b.likeCount.compareTo(a.likeCount));
+      return allAnswers;
+    }
+
+    return answerRepository.getTrendingAnswers();
+  }
+
+  void _onCategoryChanged(String? categoryId) {
+    if (categoryId == _selectedCategoryId) return;
+    setState(() => _selectedCategoryId = categoryId);
     _loadAnswers();
   }
 
@@ -48,10 +105,7 @@ class _FeedScreenState extends State<FeedScreen> {
     });
 
     try {
-      final answers = await answerRepository.getAnswersForQuiz(
-        widget.quiz.id,
-        sort: _sortTabs[_selectedSortIndex].$2,
-      );
+      final answers = await _fetchAnswers();
       setState(() {
         _answers = answers;
         _isLoading = false;
@@ -152,23 +206,18 @@ class _FeedScreenState extends State<FeedScreen> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  widget.quiz.title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+              const SizedBox(width: 24),
+              Text(
+                widget.quiz?.title ?? 'Feed',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
+              const SizedBox(width: 24),
             ],
           ),
         ),
@@ -181,15 +230,66 @@ class _FeedScreenState extends State<FeedScreen> {
       color: AppTheme.background,
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-            child: _buildSortTabs(),
-          ),
-          const SizedBox(height: 16),
+          if (_categories.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildCategoryChips(),
+          ],
+          if (widget.quiz != null) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: _buildSortTabs(),
+            ),
+            const SizedBox(height: 16),
+          ] else
+            const SizedBox(height: 16),
           Expanded(
             child: _buildAnswersList(),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryChips() {
+    return SizedBox(
+      height: 36,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: _categories.length + 1,
+        itemBuilder: (context, index) {
+          final isAll = index == 0;
+          final category = isAll ? null : _categories[index - 1];
+          final isActive = isAll
+              ? _selectedCategoryId == null
+              : _selectedCategoryId == category!.id;
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () => _onCategoryChanged(category?.id),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: isActive ? AppTheme.primaryStart : Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: isActive ? AppTheme.primaryStart : AppTheme.borderLight,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  isAll ? 'All' : category!.name,
+                  style: TextStyle(
+                    color: isActive ? Colors.white : AppTheme.textDark,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
