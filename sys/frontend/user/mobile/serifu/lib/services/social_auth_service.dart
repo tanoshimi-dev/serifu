@@ -84,6 +84,7 @@ class SocialAuthService {
     try {
       loginResult = await LineSDK.instance.login(
         scopes: ['profile'],
+        option: Platform.isAndroid ? LoginOption(true, 'normal') : null,
       );
     } on PlatformException catch (e) {
       if (e.code == 'CANCEL') {
