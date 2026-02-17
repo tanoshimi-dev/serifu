@@ -119,6 +119,9 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			notifications.GET("/unread-count", notificationHandler.GetUnreadCount)
 		}
 
+		// Timeline routes
+		v1.GET("/timeline", answerHandler.GetTimeline)
+
 		// Category routes
 		categories := v1.Group("/categories")
 		{

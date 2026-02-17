@@ -39,6 +39,14 @@ class _FeedScreenState extends State<FeedScreen> {
   bool _isLoading = true;
   String? _error;
 
+  // Following tab state
+  int _selectedFeedTab = 0; // 0 = All, 1 = Following
+  List<Answer> _timelineAnswers = [];
+  int _timelinePage = 1;
+  bool _hasMoreTimeline = true;
+  bool _isLoadingTimeline = true;
+  String? _timelineError;
+
   @override
   void initState() {
     super.initState();
@@ -119,6 +127,51 @@ class _FeedScreenState extends State<FeedScreen> {
     }
   }
 
+  void _onFeedTabChanged(int index) {
+    if (index == _selectedFeedTab) return;
+    setState(() => _selectedFeedTab = index);
+    if (index == 1 && _timelineAnswers.isEmpty && _isLoadingTimeline) {
+      _loadTimeline();
+    }
+  }
+
+  Future<void> _loadTimeline() async {
+    setState(() {
+      _isLoadingTimeline = true;
+      _timelineError = null;
+      _timelinePage = 1;
+      _hasMoreTimeline = true;
+    });
+
+    try {
+      final answers = await answerRepository.getTimeline(page: 1);
+      setState(() {
+        _timelineAnswers = answers;
+        _hasMoreTimeline = answers.length >= 20;
+        _isLoadingTimeline = false;
+      });
+    } catch (e) {
+      setState(() {
+        _timelineError = e.toString();
+        _isLoadingTimeline = false;
+      });
+    }
+  }
+
+  Future<void> _loadMoreTimeline() async {
+    if (!_hasMoreTimeline) return;
+
+    final nextPage = _timelinePage + 1;
+    try {
+      final answers = await answerRepository.getTimeline(page: nextPage);
+      setState(() {
+        _timelineAnswers.addAll(answers);
+        _timelinePage = nextPage;
+        _hasMoreTimeline = answers.length >= 20;
+      });
+    } catch (_) {}
+  }
+
   void _onSortChanged(int index) {
     if (index != _selectedSortIndex) {
       setState(() => _selectedSortIndex = index);
@@ -129,15 +182,14 @@ class _FeedScreenState extends State<FeedScreen> {
   Future<void> _toggleLike(Answer answer) async {
     final isLiked = answer.isLiked ?? false;
     final newLikeCount = isLiked ? answer.likeCount - 1 : answer.likeCount + 1;
+    final updated = answer.copyWith(
+      likeCount: newLikeCount,
+      isLiked: !isLiked,
+    );
 
     setState(() {
-      final index = _answers.indexWhere((a) => a.id == answer.id);
-      if (index != -1) {
-        _answers[index] = answer.copyWith(
-          likeCount: newLikeCount,
-          isLiked: !isLiked,
-        );
-      }
+      _updateAnswerInList(_answers, answer.id, updated);
+      _updateAnswerInList(_timelineAnswers, answer.id, updated);
     });
 
     try {
@@ -148,16 +200,21 @@ class _FeedScreenState extends State<FeedScreen> {
       }
     } catch (e) {
       setState(() {
-        final index = _answers.indexWhere((a) => a.id == answer.id);
-        if (index != -1) {
-          _answers[index] = answer;
-        }
+        _updateAnswerInList(_answers, answer.id, answer);
+        _updateAnswerInList(_timelineAnswers, answer.id, answer);
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to update like: $e')),
         );
       }
+    }
+  }
+
+  void _updateAnswerInList(List<Answer> list, String id, Answer value) {
+    final index = list.indexWhere((a) => a.id == id);
+    if (index != -1) {
+      list[index] = value;
     }
   }
 
@@ -242,22 +299,180 @@ class _FeedScreenState extends State<FeedScreen> {
       color: AppTheme.background,
       child: Column(
         children: [
-          if (_categories.isNotEmpty) ...[
+          if (widget.quiz == null) ...[
             const SizedBox(height: 16),
-            _buildCategoryChips(),
+            _buildFeedTabs(),
           ],
-          if (widget.quiz != null) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: _buildSortTabs(),
+          if (_selectedFeedTab == 0) ...[
+            if (_categories.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _buildCategoryChips(),
+            ],
+            if (widget.quiz != null) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: _buildSortTabs(),
+              ),
+              const SizedBox(height: 16),
+            ] else
+              const SizedBox(height: 16),
+            Expanded(
+              child: _buildAnswersList(),
+            ),
+          ] else ...[
+            const SizedBox(height: 16),
+            Expanded(
+              child: _buildTimelineList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeedTabs() {
+    final tabs = ['All', 'Following'];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: tabs.asMap().entries.map((entry) {
+          final index = entry.key;
+          final label = entry.value;
+          final isActive = index == _selectedFeedTab;
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () => _onFeedTabChanged(index),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isActive ? AppTheme.primaryStart : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isActive ? AppTheme.primaryStart : const Color(0xFFE0E0E0),
+                    width: 2,
+                  ),
+                ),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: isActive ? Colors.white : AppTheme.textGray,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildTimelineList() {
+    if (_isLoadingTimeline) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppTheme.primaryStart),
+      );
+    }
+
+    if (_timelineError != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: AppTheme.textLight),
+            const SizedBox(height: 16),
+            const Text(
+              'Failed to load timeline',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textDark,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _timelineError!,
+              style: const TextStyle(color: AppTheme.textLight, fontSize: 12),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-          ] else
-            const SizedBox(height: 16),
-          Expanded(
-            child: _buildAnswersList(),
-          ),
-        ],
+            ElevatedButton(
+              onPressed: _loadTimeline,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_timelineAnswers.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.people_outline, size: 48, color: AppTheme.textLight),
+            SizedBox(height: 16),
+            Text(
+              'フォロー中のユーザーの投稿がここに表示されます',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textLight,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadTimeline,
+      color: AppTheme.primaryStart,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: _timelineAnswers.length + (_hasMoreTimeline ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == _timelineAnswers.length) {
+            _loadMoreTimeline();
+            return const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(
+                child: CircularProgressIndicator(color: AppTheme.primaryStart),
+              ),
+            );
+          }
+
+          final answer = _timelineAnswers[index];
+          return AnswerCard(
+            answer: answer,
+            onLike: () => _toggleLike(answer),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AnswerDetailScreen(answer: answer),
+              ),
+            ),
+            onComment: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CommentScreen(answer: answer),
+              ),
+            ),
+            onUserTap: answer.user != null
+                ? () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            UserProfileScreen(userId: answer.userId),
+                      ),
+                    )
+                : null,
+          );
+        },
       ),
     );
   }

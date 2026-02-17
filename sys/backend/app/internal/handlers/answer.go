@@ -209,6 +209,51 @@ func (h *AnswerHandler) UpdateAnswer(c *gin.Context) {
 	utils.SuccessResponse(c, answer)
 }
 
+func (h *AnswerHandler) GetTimeline(c *gin.Context) {
+	db := database.GetDB()
+
+	userID := c.GetHeader("X-User-ID")
+	if userID == "" {
+		utils.UnauthorizedResponse(c, "User ID required")
+		return
+	}
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		utils.BadRequestResponse(c, "Invalid user ID")
+		return
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", strconv.Itoa(h.defaultPageSize)))
+	if pageSize > h.maxPageSize {
+		pageSize = h.maxPageSize
+	}
+	if page < 1 {
+		page = 1
+	}
+
+	followingSubquery := db.Model(&database.Follow{}).
+		Select("following_id").
+		Where("follower_id = ?", userUUID)
+
+	query := db.Model(&database.Answer{}).
+		Preload("User").
+		Preload("Quiz").
+		Where("user_id IN (?) AND status = ?", followingSubquery, "active")
+
+	var total int64
+	query.Count(&total)
+
+	var answers []database.Answer
+	offset := (page - 1) * pageSize
+	if err := query.Order("created_at DESC").Offset(offset).Limit(pageSize).Find(&answers).Error; err != nil {
+		utils.InternalErrorResponse(c, "Failed to fetch timeline")
+		return
+	}
+
+	utils.PaginatedSuccessResponse(c, answers, page, pageSize, total)
+}
+
 func (h *AnswerHandler) DeleteAnswer(c *gin.Context) {
 	db := database.GetDB()
 	id := c.Param("id")

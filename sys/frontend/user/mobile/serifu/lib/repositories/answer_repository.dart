@@ -68,6 +68,19 @@ class AnswerRepository {
     return data.map((json) => Answer.fromJson(json as Map<String, dynamic>)).toList();
   }
 
+  Future<List<Answer>> getTimeline({
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    final queryParams = <String, String>{
+      'page': page.toString(),
+      'page_size': pageSize.toString(),
+    };
+    final response = await _client.get('/timeline', queryParams: queryParams);
+    final data = response['data'] as List<dynamic>;
+    return data.map((json) => Answer.fromJson(json as Map<String, dynamic>)).toList();
+  }
+
   Future<List<Answer>> getRankings({
     required String period, // daily, weekly, all-time
     int page = 1,
