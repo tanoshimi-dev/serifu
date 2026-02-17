@@ -14,6 +14,12 @@ type Config struct {
 	Admin      AdminConfig
 	JWT        JWTConfig
 	SocialAuth SocialAuthConfig
+	Upload     UploadConfig
+}
+
+type UploadConfig struct {
+	AvatarDir     string
+	MaxFileSizeMB int
 }
 
 type SocialAuthConfig struct {
@@ -83,6 +89,10 @@ func Load() *Config {
 			GoogleClientID: getEnv("GOOGLE_CLIENT_ID", ""),
 			AppleClientID:  getEnv("APPLE_CLIENT_ID", ""),
 			LineChannelID:  getEnv("LINE_CHANNEL_ID", ""),
+		},
+		Upload: UploadConfig{
+			AvatarDir:     getEnv("UPLOAD_AVATAR_DIR", "./static/uploads/avatars"),
+			MaxFileSizeMB: getEnvInt("UPLOAD_MAX_FILE_SIZE_MB", 5),
 		},
 	}
 }

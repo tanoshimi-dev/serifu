@@ -10,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../widgets/quiz_card_compact.dart';
 import '../widgets/section_header.dart';
 import '../widgets/bottom_nav_bar.dart';
+import '../widgets/user_avatar.dart';
 import 'quiz_detail_screen.dart';
 import 'feed_screen.dart';
 import 'profile_screen.dart';
@@ -571,23 +572,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(width: 12),
                   Column(
                     children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: const BoxDecoration(
-                          gradient: AppTheme.primaryGradient,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(
-                            avatarInitial,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
+                      UserAvatar(
+                        avatarUrl: user?.avatar,
+                        initial: avatarInitial,
+                        size: 32,
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -655,23 +643,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             )
                         : null,
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: const BoxDecoration(
-                        gradient: AppTheme.primaryGradient,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          avatarInitial,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
+                    child: UserAvatar(
+                      avatarUrl: user?.avatar,
+                      initial: avatarInitial,
+                      size: 36,
                     ),
                   ),
                   const SizedBox(width: 10),

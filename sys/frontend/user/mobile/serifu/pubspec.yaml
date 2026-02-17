@@ -50,6 +50,9 @@ dependencies:
   # Share content to other apps
   share_plus: ^10.1.4
 
+  # Image picker
+  image_picker: ^1.1.2
+
   # Social login
   google_sign_in: ^6.2.1
   sign_in_with_apple: ^6.1.0

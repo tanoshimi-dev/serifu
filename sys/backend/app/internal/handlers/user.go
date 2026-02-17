@@ -1,7 +1,14 @@
 package handlers
 
 import (
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -12,12 +19,16 @@ import (
 type UserHandler struct {
 	defaultPageSize int
 	maxPageSize     int
+	avatarDir       string
+	maxFileSizeMB   int
 }
 
-func NewUserHandler(defaultPageSize, maxPageSize int) *UserHandler {
+func NewUserHandler(defaultPageSize, maxPageSize int, avatarDir string, maxFileSizeMB int) *UserHandler {
 	return &UserHandler{
 		defaultPageSize: defaultPageSize,
 		maxPageSize:     maxPageSize,
+		avatarDir:       avatarDir,
+		maxFileSizeMB:   maxFileSizeMB,
 	}
 }
 
@@ -182,5 +193,120 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 
 	db.First(&user, "id = ?", userID)
 
+	utils.SuccessResponse(c, user)
+}
+
+func (h *UserHandler) UploadAvatar(c *gin.Context) {
+	db := database.GetDB()
+	id := c.Param("id")
+
+	userID, err := uuid.Parse(id)
+	if err != nil {
+		utils.BadRequestResponse(c, "Invalid user ID")
+		return
+	}
+
+	currentUserID := c.GetHeader("X-User-ID")
+	if currentUserID == "" {
+		utils.UnauthorizedResponse(c, "User ID required")
+		return
+	}
+
+	currentUUID, err := uuid.Parse(currentUserID)
+	if err != nil {
+		utils.BadRequestResponse(c, "Invalid current user ID")
+		return
+	}
+
+	if userID != currentUUID {
+		utils.ForbiddenResponse(c, "You can only update your own avatar")
+		return
+	}
+
+	var user database.User
+	if err := db.First(&user, "id = ?", userID).Error; err != nil {
+		utils.NotFoundResponse(c, "User not found")
+		return
+	}
+
+	maxSize := int64(h.maxFileSizeMB) << 20
+	if err := c.Request.ParseMultipartForm(maxSize); err != nil {
+		utils.BadRequestResponse(c, "File too large")
+		return
+	}
+
+	file, header, err := c.Request.FormFile("avatar")
+	if err != nil {
+		utils.BadRequestResponse(c, "Avatar file is required")
+		return
+	}
+	defer file.Close()
+
+	if header.Size > maxSize {
+		utils.BadRequestResponse(c, fmt.Sprintf("File size exceeds %dMB limit", h.maxFileSizeMB))
+		return
+	}
+
+	// Validate content type
+	buf := make([]byte, 512)
+	n, err := file.Read(buf)
+	if err != nil && err != io.EOF {
+		utils.InternalErrorResponse(c, "Failed to read file")
+		return
+	}
+	contentType := http.DetectContentType(buf[:n])
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		utils.InternalErrorResponse(c, "Failed to process file")
+		return
+	}
+
+	var ext string
+	switch contentType {
+	case "image/jpeg":
+		ext = ".jpg"
+	case "image/png":
+		ext = ".png"
+	case "image/webp":
+		ext = ".webp"
+	default:
+		utils.BadRequestResponse(c, "Only JPEG, PNG, and WebP images are allowed")
+		return
+	}
+
+	if err := os.MkdirAll(h.avatarDir, 0755); err != nil {
+		utils.InternalErrorResponse(c, "Failed to create upload directory")
+		return
+	}
+
+	filename := fmt.Sprintf("%s_%d%s", userID.String(), time.Now().UnixMilli(), ext)
+	filePath := filepath.Join(h.avatarDir, filename)
+
+	dst, err := os.Create(filePath)
+	if err != nil {
+		utils.InternalErrorResponse(c, "Failed to save file")
+		return
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, file); err != nil {
+		os.Remove(filePath)
+		utils.InternalErrorResponse(c, "Failed to save file")
+		return
+	}
+
+	// Delete old avatar file if exists
+	if user.Avatar != "" {
+		oldPath := strings.TrimPrefix(user.Avatar, "/")
+		os.Remove(oldPath)
+	}
+
+	avatarURL := "/static/uploads/avatars/" + filename
+	if err := db.Model(&user).Update("avatar", avatarURL).Error; err != nil {
+		os.Remove(filePath)
+		utils.InternalErrorResponse(c, "Failed to update user")
+		return
+	}
+
+	db.First(&user, "id = ?", userID)
 	utils.SuccessResponse(c, user)
 }

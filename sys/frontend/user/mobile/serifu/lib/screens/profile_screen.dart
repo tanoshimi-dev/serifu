@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/user.dart';
 import '../models/answer.dart';
 import '../repositories/auth_repository.dart';
@@ -7,6 +9,7 @@ import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/answer_card.dart';
 import '../widgets/bottom_nav_bar.dart';
+import '../widgets/user_avatar.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
 import 'notification_screen.dart';
@@ -98,6 +101,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
         MaterialPageRoute(builder: (context) => const LoginScreen()),
         (route) => false,
       );
+    }
+  }
+
+  Future<void> _pickAndUploadAvatar() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Camera'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Gallery'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null || _user == null) return;
+
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: source, maxWidth: 512, maxHeight: 512);
+    if (picked == null) return;
+
+    try {
+      final updated = await userRepository.uploadAvatar(
+        _user!.id,
+        File(picked.path),
+      );
+      setState(() => _user = updated);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to upload avatar: $e')),
+        );
+      }
     }
   }
 
@@ -286,22 +332,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildUserInfo(User user) {
     return Column(
       children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: const BoxDecoration(
-            gradient: AppTheme.primaryGradient,
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(
-              user.avatarInitial,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 32,
+        GestureDetector(
+          onTap: _pickAndUploadAvatar,
+          child: Stack(
+            children: [
+              UserAvatar(
+                avatarUrl: user.avatar,
+                initial: user.avatarInitial,
+                size: 80,
               ),
-            ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryStart,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: const Icon(Icons.camera_alt, color: Colors.white, size: 14),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 12),

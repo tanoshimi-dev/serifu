@@ -5,6 +5,7 @@ import '../models/answer.dart';
 import '../repositories/user_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/answer_card.dart';
+import '../widgets/user_avatar.dart';
 import 'answer_detail_screen.dart';
 import 'comment_screen.dart';
 import 'follow_list_screen.dart';
@@ -193,23 +194,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           children: [
             // Avatar
             Center(
-              child: Container(
-                width: 80,
-                height: 80,
-                decoration: const BoxDecoration(
-                  gradient: AppTheme.primaryGradient,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    user.avatarInitial,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 32,
-                    ),
-                  ),
-                ),
+              child: UserAvatar(
+                avatarUrl: user.avatar,
+                initial: user.avatarInitial,
+                size: 80,
               ),
             ),
             const SizedBox(height: 12),

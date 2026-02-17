@@ -184,7 +184,7 @@ GET    /api/v1/notifications/unread-count # 未読数 (認証必須)
 **Backend:**
 - `POST /api/v1/users/avatar` エンドポイント追加
 - マルチパートフォームデータ対応
-- 画像保存先: ローカルストレージ or S3互換 (MinIO)
+- 画像保存先: ローカルストレージ
 - 画像リサイズ処理 (サムネイル生成)
 - 静的ファイル配信設定
 

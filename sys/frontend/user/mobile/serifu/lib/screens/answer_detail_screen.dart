@@ -4,6 +4,7 @@ import '../models/answer.dart';
 import '../repositories/answer_repository.dart';
 import '../theme/app_theme.dart';
 import '../utils/time_utils.dart';
+import '../widgets/user_avatar.dart';
 import 'comment_screen.dart';
 import 'user_profile_screen.dart';
 
@@ -218,23 +219,10 @@ class _AnswerDetailScreenState extends State<AnswerDetailScreen> {
             onTap: _navigateToUser,
             child: Row(
               children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: const BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      user?.avatarInitial ?? '?',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 20,
-                      ),
-                    ),
-                  ),
+                UserAvatar(
+                  avatarUrl: user?.avatar,
+                  initial: user?.avatarInitial ?? '?',
+                  size: 48,
                 ),
                 const SizedBox(width: 12),
                 Column(

@@ -4,6 +4,7 @@ import '../repositories/notification_repository.dart';
 import '../repositories/answer_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/bottom_nav_bar.dart';
+import '../widgets/user_avatar.dart';
 import 'home_screen.dart';
 import 'feed_screen.dart';
 import 'write_screen.dart';
@@ -271,23 +272,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
             Stack(
               clipBehavior: Clip.none,
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: const BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      avatarInitial,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
+                UserAvatar(
+                  avatarUrl: notification.actor?.avatar,
+                  initial: avatarInitial,
+                  size: 44,
                 ),
                 Positioned(
                   right: -4,

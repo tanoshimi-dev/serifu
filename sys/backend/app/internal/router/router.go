@@ -28,7 +28,7 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 	answerHandler := handlers.NewAnswerHandler(cfg.Pagination.DefaultPageSize, cfg.Pagination.MaxPageSize)
 	likeHandler := handlers.NewLikeHandler()
 	commentHandler := handlers.NewCommentHandler(cfg.Pagination.DefaultPageSize, cfg.Pagination.MaxPageSize)
-	userHandler := handlers.NewUserHandler(cfg.Pagination.DefaultPageSize, cfg.Pagination.MaxPageSize)
+	userHandler := handlers.NewUserHandler(cfg.Pagination.DefaultPageSize, cfg.Pagination.MaxPageSize, cfg.Upload.AvatarDir, cfg.Upload.MaxFileSizeMB)
 	followHandler := handlers.NewFollowHandler(cfg.Pagination.DefaultPageSize, cfg.Pagination.MaxPageSize)
 	rankingHandler := handlers.NewRankingHandler(cfg.Pagination.DefaultPageSize, cfg.Pagination.MaxPageSize)
 	notificationHandler := handlers.NewNotificationHandler(cfg.Pagination.DefaultPageSize, cfg.Pagination.MaxPageSize)
@@ -88,6 +88,7 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			users.GET("/:id", userHandler.GetUser)
 			users.GET("/:id/answers", userHandler.GetUserAnswers)
 			users.PUT("/:id", userHandler.UpdateUser)
+			users.POST("/:id/avatar", userHandler.UploadAvatar)
 
 			// Follow routes
 			users.POST("/:id/follow", followHandler.FollowUser)

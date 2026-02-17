@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/answer.dart';
 import '../theme/app_theme.dart';
+import 'user_avatar.dart';
 
 class AnswerCard extends StatelessWidget {
   final Answer answer;
@@ -47,37 +48,30 @@ class AnswerCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                GestureDetector(
-                  onTap: onUserTap,
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(
-                          gradient: AppTheme.primaryGradient,
-                          shape: BoxShape.circle,
+                Flexible(
+                  child: GestureDetector(
+                    onTap: onUserTap,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        UserAvatar(
+                          avatarUrl: user?.avatar,
+                          initial: avatarInitial,
+                          size: 40,
                         ),
-                        child: Center(
+                        const SizedBox(width: 10),
+                        Flexible(
                           child: Text(
-                            avatarInitial,
+                            username,
                             style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textDark,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        username,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textDark,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 const Spacer(),

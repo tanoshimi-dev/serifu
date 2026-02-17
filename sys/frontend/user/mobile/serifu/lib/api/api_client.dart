@@ -87,6 +87,30 @@ class ApiClient {
     return _handleResponse(response);
   }
 
+  /// Get the server base URL (without /api/v1 suffix) for constructing static file URLs.
+  static String get serverBaseUrl {
+    final url = baseUrl;
+    if (url.endsWith('/api/v1')) {
+      return url.substring(0, url.length - '/api/v1'.length);
+    }
+    return url;
+  }
+
+  Future<Map<String, dynamic>> uploadFile(
+      String path, String fieldName, File file) async {
+    final uri = Uri.parse('$baseUrl$path');
+    final request = http.MultipartRequest('POST', uri);
+    request.headers.addAll({
+      if (_token != null) 'Authorization': 'Bearer $_token',
+      if (_userId != null) 'X-User-ID': _userId!,
+    });
+    request.files
+        .add(await http.MultipartFile.fromPath(fieldName, file.path));
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    return _handleResponse(response);
+  }
+
   Map<String, dynamic> _handleResponse(http.Response response) {
     final body = jsonDecode(response.body) as Map<String, dynamic>;
 

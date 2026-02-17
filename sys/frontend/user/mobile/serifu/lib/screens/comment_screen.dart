@@ -4,6 +4,7 @@ import '../models/answer.dart';
 import '../repositories/answer_repository.dart';
 import '../theme/app_theme.dart';
 import '../utils/time_utils.dart';
+import '../widgets/user_avatar.dart';
 import 'user_profile_screen.dart';
 
 class CommentScreen extends StatefulWidget {
@@ -311,45 +312,38 @@ class _CommentScreenState extends State<CommentScreen> {
         children: [
           Row(
             children: [
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => UserProfileScreen(userId: comment.userId),
-                    ),
-                  );
-                },
-                child: Row(
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: const BoxDecoration(
-                        gradient: AppTheme.primaryGradient,
-                        shape: BoxShape.circle,
+              Flexible(
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => UserProfileScreen(userId: comment.userId),
                       ),
-                      child: Center(
+                    );
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      UserAvatar(
+                        avatarUrl: user?.avatar,
+                        initial: user?.avatarInitial ?? '?',
+                        size: 32,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
                         child: Text(
-                          user?.avatarInitial ?? '?',
+                          user?.name ?? 'Unknown',
                           style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                             fontSize: 13,
+                            color: AppTheme.textDark,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      user?.name ?? 'Unknown',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                        color: AppTheme.textDark,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               const Spacer(),

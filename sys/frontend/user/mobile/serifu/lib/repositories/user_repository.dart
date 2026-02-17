@@ -1,3 +1,4 @@
+import 'dart:io';
 import '../api/api_client.dart';
 import '../models/user.dart';
 import '../models/answer.dart';
@@ -9,6 +10,12 @@ class UserRepository {
 
   Future<User> getUser(String id) async {
     final response = await _client.get('/users/$id');
+    return User.fromJson(response['data'] as Map<String, dynamic>);
+  }
+
+  Future<User> uploadAvatar(String userId, File imageFile) async {
+    final response =
+        await _client.uploadFile('/users/$userId/avatar', 'avatar', imageFile);
     return User.fromJson(response['data'] as Map<String, dynamic>);
   }
 

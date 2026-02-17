@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/answer.dart';
 import '../repositories/answer_repository.dart';
 import '../theme/app_theme.dart';
+import '../widgets/user_avatar.dart';
 import 'answer_detail_screen.dart';
 import 'user_profile_screen.dart';
 
@@ -318,23 +319,10 @@ class _RankingsScreenState extends State<RankingsScreen> {
                   );
                 }
               },
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  gradient: AppTheme.primaryGradient,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    avatarInitial,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
+              child: UserAvatar(
+                avatarUrl: user?.avatar,
+                initial: avatarInitial,
+                size: 36,
               ),
             ),
             const SizedBox(width: 10),

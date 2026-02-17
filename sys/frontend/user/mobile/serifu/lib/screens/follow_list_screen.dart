@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../repositories/user_repository.dart';
 import '../theme/app_theme.dart';
+import '../widgets/user_avatar.dart';
 import 'user_profile_screen.dart';
 
 class FollowListScreen extends StatefulWidget {
@@ -231,23 +232,10 @@ class _FollowListScreenState extends State<FollowListScreen> {
         ),
         child: Row(
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: const BoxDecoration(
-                gradient: AppTheme.primaryGradient,
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  user.avatarInitial,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
-                  ),
-                ),
-              ),
+            UserAvatar(
+              avatarUrl: user.avatar,
+              initial: user.avatarInitial,
+              size: 44,
             ),
             const SizedBox(width: 12),
             Expanded(
