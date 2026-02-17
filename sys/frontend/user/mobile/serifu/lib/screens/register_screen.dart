@@ -419,10 +419,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 30, 20, 30),
           child: Column(
-            children: const [
-              Icon(Icons.edit, color: Colors.white, size: 40),
-              SizedBox(height: 8),
-              Text(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset('assets/icon/serifu-icon.png', width: 56, height: 56),
+              ),
+              const SizedBox(height: 8),
+              const Text(
                 'Serifu',
                 style: TextStyle(
                   color: Colors.white,

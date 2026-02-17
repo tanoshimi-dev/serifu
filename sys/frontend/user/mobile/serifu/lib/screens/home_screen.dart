@@ -193,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               const Icon(Icons.menu, color: Colors.white, size: 24),
               const Text(
-                'Quiz + SNS',
+                'Serifu',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 20,

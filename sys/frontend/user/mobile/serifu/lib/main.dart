@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_line_sdk/flutter_line_sdk.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'services/auth_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await dotenv.load();
   await LineSDK.instance.setup(dotenv.env['LINE_CHANNEL_ID']!);
   runApp(const SerifuApp());
@@ -53,14 +55,35 @@ class _AuthGateState extends State<AuthGate> {
       _isLoggedIn = loggedIn;
       _isLoading = false;
     });
+    FlutterNativeSplash.remove();
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
+      return Scaffold(
+        backgroundColor: Colors.white,
         body: Center(
-          child: CircularProgressIndicator(color: AppTheme.primaryStart),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Image.asset('assets/icon/serifu-icon.png', width: 96, height: 96),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Serifu',
+                style: TextStyle(
+                  color: AppTheme.textDark,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 24),
+              const CircularProgressIndicator(color: AppTheme.primaryStart),
+            ],
+          ),
         ),
       );
     }

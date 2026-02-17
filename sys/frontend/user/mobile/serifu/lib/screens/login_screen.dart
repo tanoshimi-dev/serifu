@@ -372,10 +372,13 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 40, 20, 40),
           child: Column(
-            children: const [
-              Icon(Icons.edit, color: Colors.white, size: 48),
-              SizedBox(height: 12),
-              Text(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset('assets/icon/serifu-icon.png', width: 64, height: 64),
+              ),
+              const SizedBox(height: 12),
+              const Text(
                 'Serifu',
                 style: TextStyle(
                   color: Colors.white,
@@ -383,8 +386,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              SizedBox(height: 4),
-              Text(
+              const SizedBox(height: 4),
+              const Text(
                 'Quiz + SNS',
                 style: TextStyle(
                   color: Colors.white70,

@@ -53,6 +53,9 @@ dependencies:
   # Image picker
   image_picker: ^1.1.2
 
+  # Native splash screen (runtime API)
+  flutter_native_splash: ^2.4.5
+
   # Social login
   google_sign_in: ^6.2.1
   sign_in_with_apple: ^6.1.0
@@ -69,6 +72,27 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
 
+  # App icon generator
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "../../../../../asset/mobile/icon/serifu-icon.png"
+  adaptive_icon_background: "#6C5CE7"
+  adaptive_icon_foreground: "../../../../../asset/mobile/icon/serifu-icon.png"
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: "../../../../../asset/mobile/icon/serifu-icon.png"
+  color_dark: "#FFFFFF"
+  image_dark: "../../../../../asset/mobile/icon/serifu-icon.png"
+  android_12:
+    color: "#FFFFFF"
+    image: "../../../../../asset/mobile/icon/serifu-icon.png"
+    color_dark: "#FFFFFF"
+    image_dark: "../../../../../asset/mobile/icon/serifu-icon.png"
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -82,6 +106,7 @@ flutter:
 
   assets:
     - .env
+    - assets/icon/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
