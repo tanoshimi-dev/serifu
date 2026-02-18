@@ -30,4 +30,4 @@ class NotificationRepository {
   }
 }
 
-final notificationRepository = NotificationRepository();
+NotificationRepository notificationRepository = NotificationRepository();

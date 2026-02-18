@@ -20,7 +20,7 @@ class UserAvatar extends StatelessWidget {
       final url = avatarUrl!;
       final fullUrl = url.startsWith('http://') || url.startsWith('https://')
           ? url
-          : '${ApiClient.serverBaseUrl}$url';
+          : '${apiClient.serverBaseUrl}$url';
       return Container(
         width: size,
         height: size,

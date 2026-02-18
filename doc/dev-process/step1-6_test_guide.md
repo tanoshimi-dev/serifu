@@ -1,6 +1,6 @@
 # Step 1-6: Test Guide — How to Run & Maintain Tests
 
-**Last updated:** 2026-02-17
+**Last updated:** 2026-02-19
 
 This document explains how to re-run all automated tests and what to check when adding new features.
 
@@ -30,8 +30,10 @@ flutter test --reporter expanded
 ### Expected result
 
 ```
-00:07 +48: All tests passed!
+00:09 +68: All tests passed!
 ```
+
+(48 unit tests + 20 E2E tests)
 
 ### Test file locations
 
@@ -46,8 +48,19 @@ test/
 │   └── time_utils_test.dart  # timeAgo() Japanese format
 ├── theme/
 │   └── app_theme_test.dart   # Color constants, ThemeData
-└── api/
-    └── api_client_test.dart  # ApiException, token/userId management
+├── api/
+│   └── api_client_test.dart  # ApiException, token/userId management
+├── helpers/
+│   ├── mock_api.dart         # MockClient factory + response helpers
+│   ├── test_data.dart        # Canned JSON response factories
+│   └── test_app.dart         # Test DI setup + MaterialApp wrapper
+└── e2e/
+    ├── login_home_test.dart       # Scenario 1: Login → Home (3 tests)
+    ├── quiz_answer_test.dart      # Scenario 2: Quiz → Answer (3 tests)
+    ├── like_comment_test.dart     # Scenario 3: Like & Comment (4 tests)
+    ├── profile_edit_test.dart     # Scenario 4: Profile Edit (4 tests)
+    ├── notification_test.dart     # Scenario 5: Notifications (3 tests)
+    └── follow_unfollow_test.dart  # Scenario 6: Follow/Unfollow (3 tests)
 ```
 
 ### When to update
@@ -60,7 +73,64 @@ test/
 
 ---
 
-## 2. Flutter Static Analysis
+## 2. Flutter E2E Tests (Widget Tests with Mocked HTTP)
+
+Full user-flow tests using `flutter_test` widget tests with `MockClient` from `package:http/testing.dart`. No running backend, device/emulator, or LINE SDK required.
+
+### Run all E2E tests
+
+```bash
+cd sys/frontend/user/mobile/serifu
+flutter test test/e2e/
+```
+
+### Run a specific scenario
+
+```bash
+flutter test test/e2e/login_home_test.dart
+flutter test test/e2e/quiz_answer_test.dart
+flutter test test/e2e/like_comment_test.dart
+flutter test test/e2e/profile_edit_test.dart
+flutter test test/e2e/notification_test.dart
+flutter test test/e2e/follow_unfollow_test.dart
+```
+
+### Expected result
+
+```
+00:05 +20: All tests passed!
+```
+
+### Test scenarios (20 tests)
+
+| Scenario | File | Tests | Description |
+|----------|------|-------|-------------|
+| 1. Login → Home | `login_home_test.dart` | 3 | Login success → HomeScreen, login failure error, login ↔ register navigation |
+| 2. Quiz → Answer | `quiz_answer_test.dart` | 3 | Quiz list → detail → submit answer, empty answer validation, See Other Answers → FeedScreen |
+| 3. Like & Comment | `like_comment_test.dart` | 4 | Like (optimistic UI), unlike, navigate to comments + post, empty comments state |
+| 4. Profile Edit | `profile_edit_test.dart` | 4 | Display user info + stats, edit mode save, cancel edit, logout → LoginScreen |
+| 5. Notifications | `notification_test.dart` | 3 | Display notifications (like/comment/follow), tap → AnswerDetailScreen, empty state |
+| 6. Follow/Unfollow | `follow_unfollow_test.dart` | 3 | Follow user, unfollow user, own profile redirects to ProfileScreen |
+
+### How it works
+
+- **`test/helpers/mock_api.dart`** — Creates `MockClient` that dispatches on `METHOD /path` patterns (supports `:id` wildcards)
+- **`test/helpers/test_data.dart`** — Canned JSON factories (`testUserJson()`, `testQuizJson()`, etc.) matching model `fromJson` contracts
+- **`test/helpers/test_app.dart`** — `setupTestApiClient()` overrides global singletons with test `ApiClient` using `MockClient`; `testApp()` wraps screens in `MaterialApp`
+- Each test calls `setupTestApiClient(mockClient)` in setup and `tearDownTestApiClient()` in tearDown
+- Production code change: global singletons (`apiClient`, repositories, `authService`) are reassignable (`var` instead of `final`) for DI in tests — zero behavioral change in production
+
+### When to update
+
+- **Added a new screen/flow?** → Add E2E test under `test/e2e/`
+- **Changed API response format?** → Update `test/helpers/test_data.dart` JSON factories
+- **Added a new API endpoint?** → Add handler in test's `createMockClient(handlers: {...})`
+- **Changed UI text/labels?** → Update `find.text()` / `find.textContaining()` assertions
+- **Added a new repository singleton?** → Add override in `test/helpers/test_app.dart` `setupTestApiClient()`
+
+---
+
+## 3. Flutter Static Analysis
 
 ### Run
 
@@ -80,7 +150,7 @@ Run this after every code change to catch lint issues early.
 
 ---
 
-## 3. Go Backend Unit Tests
+## 4. Go Backend Unit Tests
 
 ### Run via Docker (recommended)
 
@@ -166,7 +236,7 @@ internal/
 
 ---
 
-## 4. Flutter Integration Tests
+## 5. Flutter Integration Tests
 
 ### Prerequisites
 
@@ -220,16 +290,17 @@ test_driver/
 
 ---
 
-## 5. CI/CD Checklist
+## 6. CI/CD Checklist
 
 When setting up CI, run these commands in order:
 
 ```bash
-# 1. Flutter unit tests + analysis
+# 1. Flutter unit tests + E2E tests + analysis
 cd sys/frontend/user/mobile/serifu
 flutter pub get
 flutter analyze
-flutter test
+flutter test              # runs all 68 tests (unit + E2E)
+flutter test test/e2e/    # E2E tests only (optional, already included above)
 
 # 2. Go backend tests (via Docker)
 cd sys/backend
@@ -247,7 +318,7 @@ docker compose -f docker-compose.dev.yml run --rm --build test
 
 ---
 
-## 6. Adding Tests for New Features
+## 7. Adding Tests for New Features
 
 ### Flutter model tests
 
@@ -296,11 +367,14 @@ func TestNewEndpointSuccess(t *testing.T) {
 
 ---
 
-## 7. Troubleshooting
+## 8. Troubleshooting
 
 | Problem | Solution |
 |---------|----------|
 | `flutter test` fails with dotenv error | Unit tests don't use `dotenv`. Check you're not importing `main.dart` in tests |
+| E2E test `pumpAndSettle` times out | Add `SharedPreferences.setMockInitialValues({})` in `setUp`. Use `pump(Duration)` instead of `pumpAndSettle` for screens with `Image.asset` |
+| E2E test can't find widget (off-screen) | Use `tester.ensureVisible()` before tap, or `tester.drag()` for lazy `ListView` |
+| E2E test "Too many elements" on scroll | Use `tester.drag(find.byType(ListView), Offset(0, -400))` instead of `scrollUntilVisible` |
 | Go tests fail with `CGO_ENABLED` error | Set `CGO_ENABLED=1` before `go test`. SQLite requires CGO |
 | Go tests fail with `database locked` | Each test should call `setupTestDB(t)` for a fresh DB |
 | Integration tests crash with `MissingPluginException` | Don't launch full app. Wrap screens in `MaterialApp` individually |

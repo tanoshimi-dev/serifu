@@ -41,4 +41,4 @@ class QuizRepository {
   }
 }
 
-final quizRepository = QuizRepository();
+QuizRepository quizRepository = QuizRepository();

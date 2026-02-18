@@ -14,10 +14,18 @@ class ApiException implements Exception {
 }
 
 class ApiClient {
+  final http.Client _httpClient;
+  final String? _baseUrlOverride;
+
+  ApiClient({http.Client? httpClient, String? baseUrl})
+      : _httpClient = httpClient ?? http.Client(),
+        _baseUrlOverride = baseUrl;
+
   // Use API_BASE_URL from .env if set, otherwise fall back to defaults:
   // - Android emulator: 10.0.2.2 to access host machine's localhost
   // - iOS simulator: localhost
-  static String get baseUrl {
+  String get baseUrl {
+    if (_baseUrlOverride != null) return _baseUrlOverride;
     final envUrl = dotenv.env['API_BASE_URL'];
     if (envUrl != null && envUrl.isNotEmpty) {
       return envUrl;
@@ -55,14 +63,14 @@ class ApiClient {
   Future<Map<String, dynamic>> get(String path,
       {Map<String, String>? queryParams}) async {
     final uri = Uri.parse('$baseUrl$path').replace(queryParameters: queryParams);
-    final response = await http.get(uri, headers: _headers);
+    final response = await _httpClient.get(uri, headers: _headers);
     return _handleResponse(response);
   }
 
   Future<Map<String, dynamic>> post(String path,
       {Map<String, dynamic>? body}) async {
     final uri = Uri.parse('$baseUrl$path');
-    final response = await http.post(
+    final response = await _httpClient.post(
       uri,
       headers: _headers,
       body: body != null ? jsonEncode(body) : null,
@@ -73,7 +81,7 @@ class ApiClient {
   Future<Map<String, dynamic>> put(String path,
       {Map<String, dynamic>? body}) async {
     final uri = Uri.parse('$baseUrl$path');
-    final response = await http.put(
+    final response = await _httpClient.put(
       uri,
       headers: _headers,
       body: body != null ? jsonEncode(body) : null,
@@ -83,12 +91,12 @@ class ApiClient {
 
   Future<Map<String, dynamic>> delete(String path) async {
     final uri = Uri.parse('$baseUrl$path');
-    final response = await http.delete(uri, headers: _headers);
+    final response = await _httpClient.delete(uri, headers: _headers);
     return _handleResponse(response);
   }
 
   /// Get the server base URL (without /api/v1 suffix) for constructing static file URLs.
-  static String get serverBaseUrl {
+  String get serverBaseUrl {
     final url = baseUrl;
     if (url.endsWith('/api/v1')) {
       return url.substring(0, url.length - '/api/v1'.length);
@@ -130,4 +138,4 @@ class ApiClient {
 }
 
 // Global singleton instance
-final apiClient = ApiClient();
+ApiClient apiClient = ApiClient();

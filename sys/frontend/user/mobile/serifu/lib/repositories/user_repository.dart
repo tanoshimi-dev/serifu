@@ -80,4 +80,4 @@ class UserRepository {
   }
 }
 
-final userRepository = UserRepository();
+UserRepository userRepository = UserRepository();

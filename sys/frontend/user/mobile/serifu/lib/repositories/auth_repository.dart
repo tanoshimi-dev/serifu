@@ -75,4 +75,4 @@ class AuthRepository {
   }
 }
 
-final authRepository = AuthRepository();
+AuthRepository authRepository = AuthRepository();
