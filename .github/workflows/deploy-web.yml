@@ -1,0 +1,45 @@
+name: Deploy Web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'xxx'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Create .env.web
+        working-directory: xxx
+        run: |
+          cat > .env.web << EOF
+          API_BASE_URL=${{ secrets.WEB_API_BASE_URL }}
+          GOOGLE_CLIENT_ID=${{ secrets.WEB_GOOGLE_CLIENT_ID }}
+          GOOGLE_REDIRECT_URL=${{ secrets.WEB_GOOGLE_REDIRECT_URL }}
+          EOF
+
+      - name: Build Flutter Web
+        working-directory: xxx
+        run: |
+          flutter pub get
+          flutter build web --release --base-href /
+
+      - name: Deploy to VPS
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -avz --delete
+          path: xxx
+          remote_path: xxx
+          remote_host: ${{ secrets.VPS_HOST }}
+          remote_user: ${{ secrets.VPS_USER }}
+          remote_key: ${{ secrets.VPS_SSH_KEY }}
