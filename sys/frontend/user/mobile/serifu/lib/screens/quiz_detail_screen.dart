@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../api/api_client.dart';
 import '../models/quiz.dart';
 import '../repositories/answer_repository.dart';
+import '../repositories/quiz_repository.dart';
 import '../theme/app_theme.dart';
-import 'feed_screen.dart';
 
 class QuizDetailScreen extends StatefulWidget {
-  final Quiz quiz;
+  final String quizId;
+  final Quiz? quiz;
 
   const QuizDetailScreen({
     super.key,
-    required this.quiz,
+    required this.quizId,
+    this.quiz,
   });
 
   @override
@@ -21,6 +24,39 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
   final TextEditingController _answerController = TextEditingController();
   static const int maxCharacters = 150;
   bool _isSubmitting = false;
+  Quiz? _quiz;
+  bool _isLoadingQuiz = false;
+  String? _quizError;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.quiz != null) {
+      _quiz = widget.quiz;
+    } else {
+      _loadQuiz();
+    }
+  }
+
+  Future<void> _loadQuiz() async {
+    setState(() {
+      _isLoadingQuiz = true;
+      _quizError = null;
+    });
+
+    try {
+      final quiz = await quizRepository.getQuiz(widget.quizId);
+      setState(() {
+        _quiz = quiz;
+        _isLoadingQuiz = false;
+      });
+    } catch (e) {
+      setState(() {
+        _quizError = e.toString();
+        _isLoadingQuiz = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -47,18 +83,13 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      await answerRepository.createAnswer(widget.quiz.id, content);
+      await answerRepository.createAnswer(_quiz!.id, content);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Answer submitted successfully!')),
         );
         _answerController.clear();
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => FeedScreen(quiz: widget.quiz),
-          ),
-        );
+        context.push('/feed', extra: _quiz);
       }
     } catch (e) {
       if (mounted) {
@@ -100,14 +131,14 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
-                onTap: () => Navigator.pop(context),
+                onTap: () => context.pop(),
                 child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
               ),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
-                    widget.quiz.title,
+                    _quiz?.title ?? '',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -127,13 +158,43 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
   }
 
   Widget _buildContent() {
+    if (_isLoadingQuiz) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppTheme.primaryStart),
+      );
+    }
+
+    if (_quizError != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: AppTheme.textLight),
+            const SizedBox(height: 16),
+            Text(
+              _quizError!,
+              style: const TextStyle(color: AppTheme.textLight, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadQuiz,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final quiz = _quiz!;
+
     return Container(
       color: AppTheme.background,
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           Text(
-            '🎭 「${widget.quiz.title}」',
+            '🎭 「${quiz.title}」',
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
@@ -150,7 +211,7 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              widget.quiz.description,
+              quiz.description,
               style: const TextStyle(
                 color: AppTheme.textGray,
                 fontSize: 15,
@@ -171,7 +232,7 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
               ),
             ),
             child: Text(
-              widget.quiz.requirement,
+              quiz.requirement,
               style: const TextStyle(
                 color: AppTheme.warningText,
                 fontSize: 14,
@@ -221,7 +282,7 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
           const SizedBox(height: 12),
           Center(
             child: Text(
-              '👥 ${widget.quiz.answerCount} people answered',
+              '👥 ${quiz.answerCount} people answered',
               style: const TextStyle(
                 color: AppTheme.textLight,
                 fontSize: 14,
@@ -292,12 +353,7 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
   Widget _buildViewAnswersButton() {
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => FeedScreen(quiz: widget.quiz),
-          ),
-        );
+        context.push('/feed', extra: _quiz);
       },
       child: Container(
         width: double.infinity,

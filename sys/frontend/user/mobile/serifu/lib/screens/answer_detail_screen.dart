@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../api/api_client.dart';
 import '../models/answer.dart';
 import '../repositories/answer_repository.dart';
 import '../theme/app_theme.dart';
 import '../utils/time_utils.dart';
 import '../widgets/user_avatar.dart';
-import 'comment_screen.dart';
-import 'user_profile_screen.dart';
 
 class AnswerDetailScreen extends StatefulWidget {
-  final Answer answer;
+  final String answerId;
+  final Answer? answer;
 
   const AnswerDetailScreen({
     super.key,
-    required this.answer,
+    required this.answerId,
+    this.answer,
   });
 
   @override
@@ -21,15 +22,42 @@ class AnswerDetailScreen extends StatefulWidget {
 }
 
 class _AnswerDetailScreenState extends State<AnswerDetailScreen> {
-  late Answer _answer;
+  Answer? _answer;
   bool _isEditing = false;
+  bool _isLoadingAnswer = false;
+  String? _answerError;
   final _editController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _answer = widget.answer;
-    _editController.text = _answer.content;
+    if (widget.answer != null) {
+      _answer = widget.answer;
+      _editController.text = _answer!.content;
+    } else {
+      _loadAnswer();
+    }
+  }
+
+  Future<void> _loadAnswer() async {
+    setState(() {
+      _isLoadingAnswer = true;
+      _answerError = null;
+    });
+
+    try {
+      final answer = await answerRepository.getAnswer(widget.answerId);
+      setState(() {
+        _answer = answer;
+        _editController.text = answer.content;
+        _isLoadingAnswer = false;
+      });
+    } catch (e) {
+      setState(() {
+        _answerError = e.toString();
+        _isLoadingAnswer = false;
+      });
+    }
   }
 
   @override
@@ -38,22 +66,23 @@ class _AnswerDetailScreenState extends State<AnswerDetailScreen> {
     super.dispose();
   }
 
-  bool get _isOwner => _answer.userId == apiClient.userId;
+  bool get _isOwner => _answer?.userId == apiClient.userId;
 
   Future<void> _toggleLike() async {
-    final isLiked = _answer.isLiked ?? false;
-    final newLikeCount = isLiked ? _answer.likeCount - 1 : _answer.likeCount + 1;
+    if (_answer == null) return;
+    final isLiked = _answer!.isLiked ?? false;
+    final newLikeCount = isLiked ? _answer!.likeCount - 1 : _answer!.likeCount + 1;
 
-    final previous = _answer;
+    final previous = _answer!;
     setState(() {
-      _answer = _answer.copyWith(likeCount: newLikeCount, isLiked: !isLiked);
+      _answer = _answer!.copyWith(likeCount: newLikeCount, isLiked: !isLiked);
     });
 
     try {
       if (isLiked) {
-        await answerRepository.unlikeAnswer(_answer.id);
+        await answerRepository.unlikeAnswer(_answer!.id);
       } else {
-        await answerRepository.likeAnswer(_answer.id);
+        await answerRepository.likeAnswer(_answer!.id);
       }
     } catch (e) {
       setState(() => _answer = previous);
@@ -88,12 +117,12 @@ class _AnswerDetailScreenState extends State<AnswerDetailScreen> {
     if (confirmed != true) return;
 
     try {
-      await answerRepository.deleteAnswer(_answer.id);
+      await answerRepository.deleteAnswer(_answer!.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('回答を削除しました')),
         );
-        Navigator.pop(context);
+        context.pop();
       }
     } catch (e) {
       if (mounted) {
@@ -109,7 +138,7 @@ class _AnswerDetailScreenState extends State<AnswerDetailScreen> {
     if (content.isEmpty) return;
 
     try {
-      final updated = await answerRepository.updateAnswer(_answer.id, content);
+      final updated = await answerRepository.updateAnswer(_answer!.id, content);
       setState(() {
         _answer = updated;
         _isEditing = false;
@@ -124,22 +153,13 @@ class _AnswerDetailScreenState extends State<AnswerDetailScreen> {
   }
 
   void _navigateToComments() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CommentScreen(answer: _answer),
-      ),
-    );
+    if (_answer == null) return;
+    context.push('/answer/${_answer!.id}/comments', extra: _answer);
   }
 
   void _navigateToUser() {
-    if (_answer.user == null) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => UserProfileScreen(userId: _answer.userId),
-      ),
-    );
+    if (_answer?.user == null) return;
+    context.push('/user/${_answer!.userId}');
   }
 
   @override
@@ -166,7 +186,7 @@ class _AnswerDetailScreenState extends State<AnswerDetailScreen> {
           child: Row(
             children: [
               GestureDetector(
-                onTap: () => Navigator.pop(context),
+                onTap: () => context.pop(),
                 child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
               ),
               const SizedBox(width: 16),
@@ -187,7 +207,7 @@ class _AnswerDetailScreenState extends State<AnswerDetailScreen> {
                     if (value == 'edit') {
                       setState(() {
                         _isEditing = true;
-                        _editController.text = _answer.content;
+                        _editController.text = _answer!.content;
                       });
                     } else if (value == 'delete') {
                       _deleteAnswer();
@@ -206,8 +226,42 @@ class _AnswerDetailScreenState extends State<AnswerDetailScreen> {
   }
 
   Widget _buildContent() {
-    final user = _answer.user;
-    final isLiked = _answer.isLiked ?? false;
+    if (_isLoadingAnswer) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppTheme.primaryStart),
+      );
+    }
+
+    if (_answerError != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: AppTheme.textLight),
+            const SizedBox(height: 16),
+            Text(
+              _answerError!,
+              style: const TextStyle(color: AppTheme.textLight, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadAnswer,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_answer == null) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppTheme.primaryStart),
+      );
+    }
+
+    final user = _answer!.user;
+    final isLiked = _answer!.isLiked ?? false;
 
     return Container(
       color: AppTheme.background,
@@ -238,7 +292,7 @@ class _AnswerDetailScreenState extends State<AnswerDetailScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      timeAgo(_answer.createdAt),
+                      timeAgo(_answer!.createdAt),
                       style: const TextStyle(
                         color: AppTheme.textLight,
                         fontSize: 12,
@@ -301,7 +355,7 @@ class _AnswerDetailScreenState extends State<AnswerDetailScreen> {
                 ],
               ),
               child: Text(
-                _answer.content,
+                _answer!.content,
                 style: const TextStyle(
                   color: AppTheme.textDark,
                   fontSize: 17,
@@ -330,21 +384,21 @@ class _AnswerDetailScreenState extends State<AnswerDetailScreen> {
               children: [
                 _StatItem(
                   icon: isLiked ? Icons.favorite : Icons.favorite_border,
-                  value: '${_answer.likeCount}',
+                  value: '${_answer!.likeCount}',
                   label: 'いいね',
                   color: isLiked ? AppTheme.likeRed : AppTheme.textLight,
                   onTap: _toggleLike,
                 ),
                 _StatItem(
                   icon: Icons.chat_bubble_outline,
-                  value: '${_answer.commentCount}',
+                  value: '${_answer!.commentCount}',
                   label: 'コメント',
                   color: AppTheme.textLight,
                   onTap: _navigateToComments,
                 ),
                 _StatItem(
                   icon: Icons.visibility_outlined,
-                  value: '${_answer.viewCount}',
+                  value: '${_answer!.viewCount}',
                   label: '閲覧',
                   color: AppTheme.textLight,
                 ),

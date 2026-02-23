@@ -28,7 +28,7 @@ void main() {
         user: testUserJson(id: testOtherUserId, name: 'Author'),
       ));
 
-      await tester.pumpWidget(testApp(AnswerDetailScreen(answer: answer)));
+      await tester.pumpWidget(testApp(AnswerDetailScreen(answerId: answer.id, answer: answer)));
       await tester.pumpAndSettle();
 
       // Verify initial state: count = 3, unfilled heart
@@ -58,7 +58,7 @@ void main() {
         user: testUserJson(id: testOtherUserId, name: 'Author'),
       ));
 
-      await tester.pumpWidget(testApp(AnswerDetailScreen(answer: answer)));
+      await tester.pumpWidget(testApp(AnswerDetailScreen(answerId: answer.id, answer: answer)));
       await tester.pumpAndSettle();
 
       // Verify initial state: count = 5, filled heart
@@ -100,7 +100,7 @@ void main() {
         user: testUserJson(id: testOtherUserId, name: 'Author'),
       ));
 
-      await tester.pumpWidget(testApp(CommentScreen(answer: answer)));
+      await tester.pumpWidget(testApp(CommentScreen(answerId: answer.id, answer: answer)));
       await tester.pumpAndSettle();
 
       // Verify existing comment is shown
@@ -133,7 +133,7 @@ void main() {
         user: testUserJson(id: testOtherUserId, name: 'Author'),
       ));
 
-      await tester.pumpWidget(testApp(CommentScreen(answer: answer)));
+      await tester.pumpWidget(testApp(CommentScreen(answerId: answer.id, answer: answer)));
       await tester.pumpAndSettle();
 
       expect(find.text('コメントはまだありません'), findsOneWidget);

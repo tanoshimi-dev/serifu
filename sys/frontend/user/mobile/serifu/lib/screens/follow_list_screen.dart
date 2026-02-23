@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/user.dart';
 import '../repositories/user_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/user_avatar.dart';
-import 'user_profile_screen.dart';
 
 class FollowListScreen extends StatefulWidget {
   final String userId;
@@ -107,7 +107,7 @@ class _FollowListScreenState extends State<FollowListScreen> {
           child: Row(
             children: [
               GestureDetector(
-                onTap: () => Navigator.pop(context),
+                onTap: () => context.pop(),
                 child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
               ),
               const SizedBox(width: 16),
@@ -209,12 +209,7 @@ class _FollowListScreenState extends State<FollowListScreen> {
   Widget _buildUserItem(User user) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => UserProfileScreen(userId: user.id),
-          ),
-        );
+        context.push('/user/${user.id}');
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),

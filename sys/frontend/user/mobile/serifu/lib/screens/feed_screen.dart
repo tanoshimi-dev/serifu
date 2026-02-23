@@ -1,17 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/quiz.dart';
 import '../models/answer.dart';
 import '../repositories/quiz_repository.dart';
 import '../repositories/answer_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/answer_card.dart';
-import '../widgets/bottom_nav_bar.dart';
-import 'answer_detail_screen.dart';
-import 'comment_screen.dart';
-import 'user_profile_screen.dart';
-import 'write_screen.dart';
-import 'notification_screen.dart';
-import 'profile_screen.dart';
 
 class FeedScreen extends StatefulWidget {
   final Quiz? quiz;
@@ -220,44 +214,13 @@ class _FeedScreenState extends State<FeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: _buildContent(),
-          ),
-          BottomNavBar(
-            currentIndex: 1,
-            onTap: (index) {
-              if (index == 0) {
-                Navigator.popUntil(context, (route) => route.isFirst);
-              } else if (index == 2) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const WriteScreen(),
-                  ),
-                );
-              } else if (index == 3) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const NotificationScreen(),
-                  ),
-                );
-              } else if (index == 4) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProfileScreen(),
-                  ),
-                );
-              }
-            },
-          ),
-        ],
-      ),
+    return Column(
+      children: [
+        _buildHeader(),
+        Expanded(
+          child: _buildContent(),
+        ),
+      ],
     );
   }
 
@@ -450,26 +413,10 @@ class _FeedScreenState extends State<FeedScreen> {
           return AnswerCard(
             answer: answer,
             onLike: () => _toggleLike(answer),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AnswerDetailScreen(answer: answer),
-              ),
-            ),
-            onComment: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CommentScreen(answer: answer),
-              ),
-            ),
+            onTap: () => context.push('/answer/${answer.id}', extra: answer),
+            onComment: () => context.push('/answer/${answer.id}/comments', extra: answer),
             onUserTap: answer.user != null
-                ? () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            UserProfileScreen(userId: answer.userId),
-                      ),
-                    )
+                ? () => context.push('/user/${answer.userId}')
                 : null,
           );
         },
@@ -634,26 +581,10 @@ class _FeedScreenState extends State<FeedScreen> {
           return AnswerCard(
             answer: answer,
             onLike: () => _toggleLike(answer),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AnswerDetailScreen(answer: answer),
-              ),
-            ),
-            onComment: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CommentScreen(answer: answer),
-              ),
-            ),
+            onTap: () => context.push('/answer/${answer.id}', extra: answer),
+            onComment: () => context.push('/answer/${answer.id}/comments', extra: answer),
             onUserTap: answer.user != null
-                ? () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            UserProfileScreen(userId: answer.userId),
-                      ),
-                    )
+                ? () => context.push('/user/${answer.userId}')
                 : null,
           );
         },

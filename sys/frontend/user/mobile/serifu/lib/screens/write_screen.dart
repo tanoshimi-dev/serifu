@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/quiz.dart';
 import '../repositories/quiz_repository.dart';
 import '../theme/app_theme.dart';
-import '../widgets/bottom_nav_bar.dart';
-import 'home_screen.dart';
-import 'notification_screen.dart';
-import 'profile_screen.dart';
-import 'quiz_detail_screen.dart';
 
 class WriteScreen extends StatefulWidget {
   const WriteScreen({super.key});
@@ -115,38 +111,13 @@ class _WriteScreenState extends State<WriteScreen> {
     }
   }
 
-  void _onNavTap(int index) {
-    if (index == 0) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    } else if (index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const NotificationScreen()),
-      );
-    } else if (index == 4) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfileScreen()),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(child: _buildContent()),
-          BottomNavBar(
-            currentIndex: 2,
-            onTap: _onNavTap,
-          ),
-        ],
-      ),
+    return Column(
+      children: [
+        _buildHeader(),
+        Expanded(child: _buildContent()),
+      ],
     );
   }
 
@@ -326,12 +297,7 @@ class _WriteScreenState extends State<WriteScreen> {
 
   Widget _buildQuizItem(Quiz quiz) {
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => QuizDetailScreen(quiz: quiz),
-        ),
-      ),
+      onTap: () => context.push('/quiz/${quiz.id}', extra: quiz),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),

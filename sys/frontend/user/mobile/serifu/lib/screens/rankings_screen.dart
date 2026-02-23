@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/answer.dart';
 import '../repositories/answer_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/user_avatar.dart';
-import 'answer_detail_screen.dart';
-import 'user_profile_screen.dart';
 
 class RankingsScreen extends StatefulWidget {
   const RankingsScreen({super.key});
@@ -117,7 +116,7 @@ class _RankingsScreenState extends State<RankingsScreen> {
           child: Row(
             children: [
               GestureDetector(
-                onTap: () => Navigator.pop(context),
+                onTap: () => context.pop(),
                 child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
               ),
               const SizedBox(width: 16),
@@ -284,12 +283,7 @@ class _RankingsScreenState extends State<RankingsScreen> {
     final username = user?.displayName ?? '@unknown';
 
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AnswerDetailScreen(answer: answer),
-        ),
-      ),
+      onTap: () => context.push('/answer/${answer.id}', extra: answer),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
@@ -311,12 +305,7 @@ class _RankingsScreenState extends State<RankingsScreen> {
             GestureDetector(
               onTap: () {
                 if (user != null) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => UserProfileScreen(userId: answer.userId),
-                    ),
-                  );
+                  context.push('/user/${answer.userId}');
                 }
               },
               child: UserAvatar(

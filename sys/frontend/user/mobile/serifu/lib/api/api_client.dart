@@ -1,7 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import '../utils/platform_utils.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -21,16 +23,16 @@ class ApiClient {
       : _httpClient = httpClient ?? http.Client(),
         _baseUrlOverride = baseUrl;
 
-  // Use API_BASE_URL from .env if set, otherwise fall back to defaults:
-  // - Android emulator: 10.0.2.2 to access host machine's localhost
-  // - iOS simulator: localhost
   String get baseUrl {
     if (_baseUrlOverride != null) return _baseUrlOverride;
     final envUrl = dotenv.env['API_BASE_URL'];
     if (envUrl != null && envUrl.isNotEmpty) {
       return envUrl;
     }
-    if (Platform.isAndroid) {
+    if (kIsWeb) {
+      return '/api/v1';
+    }
+    if (isAndroid) {
       return 'http://10.0.2.2:8080/api/v1';
     }
     return 'http://localhost:8080/api/v1';
@@ -105,15 +107,18 @@ class ApiClient {
   }
 
   Future<Map<String, dynamic>> uploadFile(
-      String path, String fieldName, File file) async {
+      String path, String fieldName, Uint8List bytes, String filename) async {
     final uri = Uri.parse('$baseUrl$path');
     final request = http.MultipartRequest('POST', uri);
     request.headers.addAll({
       if (_token != null) 'Authorization': 'Bearer $_token',
       if (_userId != null) 'X-User-ID': _userId!,
     });
-    request.files
-        .add(await http.MultipartFile.fromPath(fieldName, file.path));
+    request.files.add(http.MultipartFile.fromBytes(
+      fieldName,
+      bytes,
+      filename: filename,
+    ));
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
     return _handleResponse(response);

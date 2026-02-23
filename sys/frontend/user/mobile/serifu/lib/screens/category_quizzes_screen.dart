@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/quiz.dart';
 import '../repositories/quiz_repository.dart';
 import '../theme/app_theme.dart';
-import 'quiz_detail_screen.dart';
 
 class CategoryQuizzesScreen extends StatefulWidget {
-  final Category category;
+  final String categoryId;
+  final Category? category;
 
   const CategoryQuizzesScreen({
     super.key,
-    required this.category,
+    required this.categoryId,
+    this.category,
   });
 
   @override
@@ -17,6 +19,7 @@ class CategoryQuizzesScreen extends StatefulWidget {
 }
 
 class _CategoryQuizzesScreenState extends State<CategoryQuizzesScreen> {
+  Category? _category;
   List<Quiz> _quizzes = [];
   bool _isLoading = true;
   bool _isLoadingMore = false;
@@ -27,6 +30,7 @@ class _CategoryQuizzesScreenState extends State<CategoryQuizzesScreen> {
   @override
   void initState() {
     super.initState();
+    _category = widget.category;
     _loadQuizzes();
   }
 
@@ -39,7 +43,7 @@ class _CategoryQuizzesScreenState extends State<CategoryQuizzesScreen> {
 
     try {
       final quizzes = await quizRepository.getQuizzes(
-        categoryId: widget.category.id,
+        categoryId: widget.categoryId,
         page: 1,
       );
       setState(() {
@@ -63,7 +67,7 @@ class _CategoryQuizzesScreenState extends State<CategoryQuizzesScreen> {
     try {
       final nextPage = _page + 1;
       final quizzes = await quizRepository.getQuizzes(
-        categoryId: widget.category.id,
+        categoryId: widget.categoryId,
         page: nextPage,
       );
       setState(() {
@@ -106,13 +110,13 @@ class _CategoryQuizzesScreenState extends State<CategoryQuizzesScreen> {
           child: Row(
             children: [
               GestureDetector(
-                onTap: () => Navigator.pop(context),
+                onTap: () => context.pop(),
                 child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
-                  widget.category.name,
+                  _category?.name ?? '',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -219,12 +223,7 @@ class _CategoryQuizzesScreenState extends State<CategoryQuizzesScreen> {
 
   Widget _buildQuizListItem(Quiz quiz) {
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => QuizDetailScreen(quiz: quiz),
-        ),
-      ),
+      onTap: () => context.push('/quiz/${quiz.id}', extra: quiz),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),

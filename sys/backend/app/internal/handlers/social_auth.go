@@ -37,7 +37,74 @@ type SocialLoginRequest struct {
 	Name  string `json:"name"`
 }
 
-// GoogleLogin verifies a Google ID token and finds/creates the user.
+type googleTokenInfo struct {
+	Sub     string `json:"sub"`
+	Email   string `json:"email"`
+	Name    string `json:"name"`
+	Picture string `json:"picture"`
+	Aud     string `json:"aud"`
+}
+
+// verifyGoogleIDToken verifies a Google ID token via tokeninfo endpoint.
+func (h *SocialAuthHandler) verifyGoogleIDToken(token string) (*googleTokenInfo, error) {
+	resp, err := http.Get("https://oauth2.googleapis.com/tokeninfo?id_token=" + token)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("invalid id_token: status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var info googleTokenInfo
+	if err := json.Unmarshal(body, &info); err != nil {
+		return nil, err
+	}
+
+	if info.Aud != h.socialAuth.GoogleClientID {
+		return nil, fmt.Errorf("audience mismatch")
+	}
+	return &info, nil
+}
+
+// verifyGoogleAccessToken verifies a Google access token via userinfo endpoint.
+func (h *SocialAuthHandler) verifyGoogleAccessToken(token string) (*googleTokenInfo, error) {
+	req, err := http.NewRequest("GET", "https://www.googleapis.com/oauth2/v3/userinfo", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := (&http.Client{}).Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("invalid access_token: status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var info googleTokenInfo
+	if err := json.Unmarshal(body, &info); err != nil {
+		return nil, err
+	}
+
+	return &info, nil
+}
+
+// GoogleLogin verifies a Google ID token or access token and finds/creates the user.
 func (h *SocialAuthHandler) GoogleLogin(c *gin.Context) {
 	var req SocialLoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -45,42 +112,14 @@ func (h *SocialAuthHandler) GoogleLogin(c *gin.Context) {
 		return
 	}
 
-	// Verify the ID token with Google
-	resp, err := http.Get("https://oauth2.googleapis.com/tokeninfo?id_token=" + req.Token)
+	// Try as ID token first, fall back to access token (web uses access tokens)
+	tokenInfo, err := h.verifyGoogleIDToken(req.Token)
 	if err != nil {
-		utils.InternalErrorResponse(c, "Failed to verify Google token")
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		utils.UnauthorizedResponse(c, "Invalid Google token")
-		return
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		utils.InternalErrorResponse(c, "Failed to read Google response")
-		return
-	}
-
-	var tokenInfo struct {
-		Sub           string `json:"sub"`
-		Email         string `json:"email"`
-		EmailVerified string `json:"email_verified"`
-		Name          string `json:"name"`
-		Picture       string `json:"picture"`
-		Aud           string `json:"aud"`
-	}
-	if err := json.Unmarshal(body, &tokenInfo); err != nil {
-		utils.InternalErrorResponse(c, "Failed to parse Google token info")
-		return
-	}
-
-	// Verify audience matches our client ID
-	if tokenInfo.Aud != h.socialAuth.GoogleClientID {
-		utils.UnauthorizedResponse(c, "Token not intended for this application")
-		return
+		tokenInfo, err = h.verifyGoogleAccessToken(req.Token)
+		if err != nil {
+			utils.UnauthorizedResponse(c, "Invalid Google token")
+			return
+		}
 	}
 
 	name := tokenInfo.Name

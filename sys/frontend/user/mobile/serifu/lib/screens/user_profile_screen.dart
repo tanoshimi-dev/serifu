@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../api/api_client.dart';
 import '../models/user.dart';
 import '../models/answer.dart';
@@ -6,10 +7,6 @@ import '../repositories/user_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/answer_card.dart';
 import '../widgets/user_avatar.dart';
-import 'answer_detail_screen.dart';
-import 'comment_screen.dart';
-import 'follow_list_screen.dart';
-import 'profile_screen.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -34,10 +31,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     super.initState();
     if (widget.userId == apiClient.userId) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const ProfileScreen()),
-        );
+        context.go('/profile');
       });
     } else {
       _loadProfile();
@@ -121,7 +115,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           child: Row(
             children: [
               GestureDetector(
-                onTap: () => Navigator.pop(context),
+                onTap: () => context.pop(),
                 child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
               ),
               const SizedBox(width: 16),
@@ -258,28 +252,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FollowListScreen(
-                        userId: widget.userId,
-                        isFollowers: true,
-                      ),
-                    ),
-                  ),
+                  onTap: () => context.push('/user/${widget.userId}/followers'),
                   behavior: HitTestBehavior.opaque,
                   child: _buildStatItem('${user.followerCount ?? 0}', 'フォロワー'),
                 ),
                 GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FollowListScreen(
-                        userId: widget.userId,
-                        isFollowers: false,
-                      ),
-                    ),
-                  ),
+                  onTap: () => context.push('/user/${widget.userId}/following'),
                   behavior: HitTestBehavior.opaque,
                   child: _buildStatItem('${user.followingCount ?? 0}', 'フォロー中'),
                 ),
@@ -301,18 +279,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               const SizedBox(height: 12),
               ..._answers.map((answer) => AnswerCard(
                     answer: answer,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AnswerDetailScreen(answer: answer),
-                      ),
-                    ),
-                    onComment: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CommentScreen(answer: answer),
-                      ),
-                    ),
+                    onTap: () => context.push('/answer/${answer.id}', extra: answer),
+                    onComment: () => context.push('/answer/${answer.id}/comments', extra: answer),
                   )),
             ] else
               Center(

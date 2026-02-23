@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/answer.dart';
 import '../theme/app_theme.dart';
+import 'hover_card.dart';
 import 'user_avatar.dart';
 
 class AnswerCard extends StatelessWidget {
@@ -27,10 +28,11 @@ class AnswerCard extends StatelessWidget {
     final username = user?.displayName ?? '@unknown';
     final isLiked = answer.isLiked ?? false;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+    return HoverCard(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -148,6 +150,7 @@ class AnswerCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

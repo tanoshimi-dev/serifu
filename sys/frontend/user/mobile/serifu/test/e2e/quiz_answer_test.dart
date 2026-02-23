@@ -68,7 +68,7 @@ void main() {
 
       setupTestApiClient(mockClient);
 
-      await tester.pumpWidget(testApp(QuizDetailScreen(quiz: quiz)));
+      await tester.pumpWidget(testApp(QuizDetailScreen(quizId: quiz.id, quiz: quiz)));
       await tester.pumpAndSettle();
 
       // Tap Submit without entering text
@@ -91,7 +91,7 @@ void main() {
 
       setupTestApiClient(mockClient);
 
-      await tester.pumpWidget(testApp(QuizDetailScreen(quiz: quiz)));
+      await tester.pumpWidget(testApp(QuizDetailScreen(quizId: quiz.id, quiz: quiz)));
       await tester.pumpAndSettle();
 
       // Scroll down in the ListView to reveal "See Other Answers" button

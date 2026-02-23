@@ -1,12 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../repositories/auth_repository.dart';
 import '../services/auth_service.dart';
 import '../services/social_auth_service.dart';
 import '../theme/app_theme.dart';
-import 'register_screen.dart';
-import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -49,11 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await authService.saveAuth(result.token, result.user.id);
 
       if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-          (route) => false,
-        );
+        context.go('/');
       }
     } catch (e) {
       setState(() {
@@ -77,11 +70,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await loginFn();
       if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-          (route) => false,
-        );
+        context.go('/');
       }
     } catch (e) {
       if (mounted) {
@@ -246,12 +235,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         GestureDetector(
                           onTap: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const RegisterScreen(),
-                              ),
-                            );
+                            context.go('/register');
                           },
                           child: const Text(
                             'Create Account',
@@ -303,7 +287,7 @@ class _LoginScreenState extends State<LoginScreen> {
           icon: Icons.g_mobiledata,
           label: 'Google',
         ),
-        if (Platform.isIOS) ...[
+        if (socialAuthService.isAppleSignInAvailable) ...[
           const SizedBox(width: 16),
           _socialButton(
             onTap: () => _handleSocialLogin(() => socialAuthService.signInWithApple()),
@@ -312,13 +296,15 @@ class _LoginScreenState extends State<LoginScreen> {
             label: 'Apple',
           ),
         ],
-        const SizedBox(width: 16),
-        _socialButton(
-          onTap: () => _handleSocialLogin(() => socialAuthService.signInWithLine()),
-          color: const Color(0xFF06C755),
-          icon: Icons.chat_bubble,
-          label: 'LINE',
-        ),
+        if (socialAuthService.isLineSignInAvailable) ...[
+          const SizedBox(width: 16),
+          _socialButton(
+            onTap: () => _handleSocialLogin(() => socialAuthService.signInWithLine()),
+            color: const Color(0xFF06C755),
+            icon: Icons.chat_bubble,
+            label: 'LINE',
+          ),
+        ],
       ],
     );
   }

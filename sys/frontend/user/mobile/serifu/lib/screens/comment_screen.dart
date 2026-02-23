@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../api/api_client.dart';
 import '../models/answer.dart';
 import '../repositories/answer_repository.dart';
 import '../theme/app_theme.dart';
 import '../utils/time_utils.dart';
 import '../widgets/user_avatar.dart';
-import 'user_profile_screen.dart';
 
 class CommentScreen extends StatefulWidget {
-  final Answer answer;
+  final String answerId;
+  final Answer? answer;
 
   const CommentScreen({
     super.key,
-    required this.answer,
+    required this.answerId,
+    this.answer,
   });
 
   @override
@@ -20,6 +22,7 @@ class CommentScreen extends StatefulWidget {
 }
 
 class _CommentScreenState extends State<CommentScreen> {
+  Answer? _answer;
   List<Comment> _comments = [];
   bool _isLoading = true;
   bool _isLoadingMore = false;
@@ -28,11 +31,40 @@ class _CommentScreenState extends State<CommentScreen> {
   bool _hasMore = true;
   final _commentController = TextEditingController();
   bool _isSending = false;
+  bool _isLoadingAnswer = false;
+  String? _answerError;
 
   @override
   void initState() {
     super.initState();
-    _loadComments();
+    if (widget.answer != null) {
+      _answer = widget.answer;
+      _loadComments();
+    } else {
+      _loadAnswerThenComments();
+    }
+  }
+
+  Future<void> _loadAnswerThenComments() async {
+    setState(() {
+      _isLoadingAnswer = true;
+      _answerError = null;
+    });
+
+    try {
+      final answer = await answerRepository.getAnswer(widget.answerId);
+      setState(() {
+        _answer = answer;
+        _isLoadingAnswer = false;
+      });
+      _loadComments();
+    } catch (e) {
+      setState(() {
+        _answerError = e.toString();
+        _isLoadingAnswer = false;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -49,7 +81,7 @@ class _CommentScreenState extends State<CommentScreen> {
     });
 
     try {
-      final comments = await answerRepository.getComments(widget.answer.id, page: 1);
+      final comments = await answerRepository.getComments(widget.answerId, page: 1);
       setState(() {
         _comments = comments;
         _hasMore = comments.length >= 20;
@@ -71,7 +103,7 @@ class _CommentScreenState extends State<CommentScreen> {
     try {
       final nextPage = _page + 1;
       final comments = await answerRepository.getComments(
-        widget.answer.id,
+        widget.answerId,
         page: nextPage,
       );
       setState(() {
@@ -97,7 +129,7 @@ class _CommentScreenState extends State<CommentScreen> {
     setState(() => _isSending = true);
 
     try {
-      final comment = await answerRepository.createComment(widget.answer.id, content);
+      final comment = await answerRepository.createComment(widget.answerId, content);
       setState(() {
         _comments.insert(0, comment);
         _commentController.clear();
@@ -174,7 +206,7 @@ class _CommentScreenState extends State<CommentScreen> {
           child: Row(
             children: [
               GestureDetector(
-                onTap: () => Navigator.pop(context),
+                onTap: () => context.pop(),
                 child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
               ),
               const SizedBox(width: 16),
@@ -196,6 +228,34 @@ class _CommentScreenState extends State<CommentScreen> {
   }
 
   Widget _buildContent() {
+    if (_isLoadingAnswer) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppTheme.primaryStart),
+      );
+    }
+
+    if (_answerError != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: AppTheme.textLight),
+            const SizedBox(height: 16),
+            Text(
+              _answerError!,
+              style: const TextStyle(color: AppTheme.textLight, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadAnswerThenComments,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: AppTheme.primaryStart),
@@ -315,12 +375,7 @@ class _CommentScreenState extends State<CommentScreen> {
               Flexible(
                 child: GestureDetector(
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => UserProfileScreen(userId: comment.userId),
-                      ),
-                    );
+                    context.push('/user/${comment.userId}');
                   },
                   child: Row(
                     mainAxisSize: MainAxisSize.min,

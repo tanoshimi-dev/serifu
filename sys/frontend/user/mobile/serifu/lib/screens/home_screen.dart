@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/quiz.dart';
 import '../models/answer.dart';
 import '../models/user.dart';
@@ -9,16 +10,7 @@ import '../repositories/notification_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/quiz_card_compact.dart';
 import '../widgets/section_header.dart';
-import '../widgets/bottom_nav_bar.dart';
 import '../widgets/user_avatar.dart';
-import 'quiz_detail_screen.dart';
-import 'feed_screen.dart';
-import 'profile_screen.dart';
-import 'notification_screen.dart';
-import 'answer_detail_screen.dart';
-import 'user_profile_screen.dart';
-import 'rankings_screen.dart';
-import 'write_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,7 +20,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _currentNavIndex = 0;
   List<Quiz> _quizzes = [];
   List<Answer> _trendingAnswers = [];
   List<Category> _categories = [];
@@ -79,44 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _onNavTap(int index) {
-    if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => FeedScreen(
-            quiz: _quizzes.isNotEmpty ? _quizzes.first : null,
-          ),
-        ),
-      );
-    } else if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const WriteScreen(),
-        ),
-      );
-    } else if (index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const NotificationScreen(),
-        ),
-      ).then((_) => _loadUnreadCount());
-    } else if (index == 4) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const ProfileScreen(),
-        ),
-      );
-    } else {
-      setState(() {
-        _currentNavIndex = index;
-      });
-    }
-  }
-
   Future<void> _loadUnreadCount() async {
     try {
       final count = await notificationRepository.getUnreadCount();
@@ -162,20 +115,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: _buildContent(),
-          ),
-          BottomNavBar(
-            currentIndex: _currentNavIndex,
-            onTap: _onNavTap,
-            notificationBadge: _unreadNotificationCount,
-          ),
-        ],
-      ),
+    return Column(
+      children: [
+        _buildHeader(),
+        Expanded(
+          child: _buildContent(),
+        ),
+      ],
     );
   }
 
@@ -204,12 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const NotificationScreen(),
-                        ),
-                      ).then((_) => _loadUnreadCount());
+                      context.push('/notifications');
                     },
                     child: Stack(
                       clipBehavior: Clip.none,
@@ -321,14 +262,7 @@ class _HomeScreenState extends State<HomeScreen> {
             if (_rankings.isNotEmpty) ...[
               SectionHeader(
                 title: 'Daily Rankings',
-                onSeeAll: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const RankingsScreen(),
-                    ),
-                  );
-                },
+                onSeeAll: () => context.push('/rankings'),
               ),
               const SizedBox(height: 12),
               _buildRankings(),
@@ -384,7 +318,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final quiz = _quizzes[index];
           return QuizCardCompact(
             quiz: quiz,
-            onTap: () => _navigateToQuizDetail(quiz),
+            onTap: () => context.push('/quiz/${quiz.id}', extra: quiz),
           );
         },
       ),
@@ -535,12 +469,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final avatarInitial = user?.avatarInitial ?? '?';
 
           return GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AnswerDetailScreen(answer: answer),
-              ),
-            ),
+            onTap: () => context.push('/answer/${answer.id}', extra: answer),
             child: Container(
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(14),
@@ -609,12 +538,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final username = user?.displayName ?? '@unknown';
 
           return GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AnswerDetailScreen(answer: answer),
-              ),
-            ),
+            onTap: () => context.push('/answer/${answer.id}', extra: answer),
             child: Container(
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(14),
@@ -635,13 +559,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(width: 12),
                   GestureDetector(
                     onTap: user != null
-                        ? () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    UserProfileScreen(userId: answer.userId),
-                              ),
-                            )
+                        ? () => context.push('/user/${answer.userId}')
                         : null,
                     child: UserAvatar(
                       avatarUrl: user?.avatar,
@@ -717,15 +635,6 @@ class _HomeScreenState extends State<HomeScreen> {
             fontSize: 13,
           ),
         ),
-      ),
-    );
-  }
-
-  void _navigateToQuizDetail(Quiz quiz) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => QuizDetailScreen(quiz: quiz),
       ),
     );
   }

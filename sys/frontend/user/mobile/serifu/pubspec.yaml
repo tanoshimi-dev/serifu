@@ -53,6 +53,9 @@ dependencies:
   # Image picker
   image_picker: ^1.1.2
 
+  # URL-based routing
+  go_router: ^14.0.0
+
   # Native splash screen (runtime API)
   flutter_native_splash: ^2.4.5
 
@@ -108,6 +111,7 @@ flutter:
 
   assets:
     - .env
+    - .env.web
     - assets/icon/
 
   # To add assets to your application, add an assets section, like this:

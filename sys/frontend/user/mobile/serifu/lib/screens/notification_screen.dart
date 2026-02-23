@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/notification.dart';
 import '../repositories/notification_repository.dart';
 import '../repositories/answer_repository.dart';
 import '../theme/app_theme.dart';
-import '../widgets/bottom_nav_bar.dart';
 import '../widgets/user_avatar.dart';
-import 'home_screen.dart';
-import 'feed_screen.dart';
-import 'write_screen.dart';
-import 'profile_screen.dart';
-import 'answer_detail_screen.dart';
-import 'user_profile_screen.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -53,22 +47,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   Future<void> _onNotificationTap(AppNotification notification) async {
     if (notification.type == 'follow') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => UserProfileScreen(userId: notification.actorId),
-        ),
-      );
+      context.push('/user/${notification.actorId}');
     } else if (notification.targetType == 'answer') {
       try {
         final answer = await answerRepository.getAnswer(notification.targetId);
         if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AnswerDetailScreen(answer: answer),
-            ),
-          );
+          context.push('/answer/${answer.id}', extra: answer);
         }
       } catch (e) {
         if (mounted) {
@@ -80,43 +64,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
-  void _onNavTap(int index) {
-    if (index == 0) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    } else if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const FeedScreen()),
-      );
-    } else if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const WriteScreen()),
-      );
-    } else if (index == 4) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfileScreen()),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(child: _buildContent()),
-          BottomNavBar(
-            currentIndex: 3,
-            onTap: _onNavTap,
-          ),
-        ],
-      ),
+    return Column(
+      children: [
+        _buildHeader(),
+        Expanded(child: _buildContent()),
+      ],
     );
   }
 

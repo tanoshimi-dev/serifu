@@ -1,5 +1,6 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/user.dart';
 import '../models/answer.dart';
@@ -8,15 +9,7 @@ import '../repositories/user_repository.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/answer_card.dart';
-import '../widgets/bottom_nav_bar.dart';
 import '../widgets/user_avatar.dart';
-import 'login_screen.dart';
-import 'home_screen.dart';
-import 'notification_screen.dart';
-import 'answer_detail_screen.dart';
-import 'comment_screen.dart';
-import 'follow_list_screen.dart';
-import 'write_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -96,35 +89,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _logout() async {
     await authService.clearAuth();
     if (mounted) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-        (route) => false,
-      );
+      context.go('/login');
     }
   }
 
   Future<void> _pickAndUploadAvatar() async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Camera'),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Gallery'),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-          ],
+    ImageSource? source;
+    if (kIsWeb) {
+      source = ImageSource.gallery;
+    } else {
+      source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Camera'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Gallery'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    }
 
     if (source == null || _user == null) return;
 
@@ -133,9 +127,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (picked == null) return;
 
     try {
+      final bytes = await picked.readAsBytes();
+      final filename = picked.name;
       final updated = await userRepository.uploadAvatar(
         _user!.id,
-        File(picked.path),
+        bytes,
+        filename,
       );
       setState(() => _user = updated);
     } catch (e) {
@@ -147,38 +144,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _onNavTap(int index) {
-    if (index == 0) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    } else if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const WriteScreen()),
-      );
-    } else if (index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const NotificationScreen()),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(child: _buildContent()),
-          BottomNavBar(
-            currentIndex: 4,
-            onTap: _onNavTap,
-          ),
-        ],
-      ),
+    return Column(
+      children: [
+        _buildHeader(),
+        Expanded(child: _buildContent()),
+      ],
     );
   }
 
@@ -291,18 +263,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 12),
               ..._answers.map((answer) => AnswerCard(
                     answer: answer,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AnswerDetailScreen(answer: answer),
-                      ),
-                    ),
-                    onComment: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CommentScreen(answer: answer),
-                      ),
-                    ),
+                    onTap: () => context.push('/answer/${answer.id}', extra: answer),
+                    onComment: () => context.push('/answer/${answer.id}/comments', extra: answer),
                   )),
             ] else
               Center(
@@ -395,28 +357,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => FollowListScreen(
-                userId: user.id,
-                isFollowers: true,
-              ),
-            ),
-          ),
+          onTap: () => context.push('/user/${user.id}/followers'),
           behavior: HitTestBehavior.opaque,
           child: _buildStatItem('${user.followerCount ?? 0}', 'Followers'),
         ),
         GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => FollowListScreen(
-                userId: user.id,
-                isFollowers: false,
-              ),
-            ),
-          ),
+          onTap: () => context.push('/user/${user.id}/following'),
           behavior: HitTestBehavior.opaque,
           child: _buildStatItem('${user.followingCount ?? 0}', 'Following'),
         ),

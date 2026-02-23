@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import '../api/api_client.dart';
 import '../models/user.dart';
 import '../models/answer.dart';
@@ -13,9 +13,9 @@ class UserRepository {
     return User.fromJson(response['data'] as Map<String, dynamic>);
   }
 
-  Future<User> uploadAvatar(String userId, File imageFile) async {
+  Future<User> uploadAvatar(String userId, Uint8List bytes, String filename) async {
     final response =
-        await _client.uploadFile('/users/$userId/avatar', 'avatar', imageFile);
+        await _client.uploadFile('/users/$userId/avatar', 'avatar', bytes, filename);
     return User.fromJson(response['data'] as Map<String, dynamic>);
   }
 
