@@ -5,6 +5,8 @@
 
 # env files
 .env
+.env.web
+.env.*
 
 #docker files
 docker-compose.prod.yml
