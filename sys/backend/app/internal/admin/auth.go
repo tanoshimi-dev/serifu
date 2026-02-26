@@ -61,6 +61,12 @@ func LoginHandler(c *gin.Context) {
 		IPAddress:   c.ClientIP(),
 	})
 
+	// If 2FA enabled, redirect to verify page
+	if admin.TwoFAEnabled {
+		c.Redirect(http.StatusFound, "/admin/2fa/verify")
+		return
+	}
+
 	c.Redirect(http.StatusFound, "/admin/")
 }
 

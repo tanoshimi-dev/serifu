@@ -49,6 +49,7 @@ func RunMigrations() error {
 		&Follow{},
 		&AdminUser{},
 		&AdminAuditLog{},
+		&AdminRecoveryCode{},
 		&SocialAccount{},
 		&Notification{},
 	)

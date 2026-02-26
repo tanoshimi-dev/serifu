@@ -22,12 +22,27 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 		adminGroup.GET("/login", LoginPage)
 		adminGroup.POST("/login", LoginHandler)
 
+		// Semi-public: requires password auth, not 2FA
+		twoFA := adminGroup.Group("/2fa")
+		twoFA.Use(TwoFAPendingRequired())
+		{
+			twoFA.GET("/verify", TwoFAVerifyPage)
+			twoFA.POST("/verify", TwoFAVerifyHandler)
+		}
+
 		// Protected routes
 		auth := adminGroup.Group("")
 		auth.Use(AuthRequired())
 		{
 			auth.GET("/logout", LogoutHandler)
 			auth.GET("/", DashboardHandler)
+
+			// 2FA Settings
+			auth.GET("/settings/2fa", TwoFASettingsPage)
+			auth.GET("/settings/2fa/setup", TwoFASetupPage)
+			auth.POST("/settings/2fa/confirm", TwoFAConfirmHandler)
+			auth.POST("/settings/2fa/disable", TwoFADisableHandler)
+			auth.POST("/settings/2fa/regenerate-codes", TwoFARegenerateCodesHandler)
 
 			// Categories
 			auth.GET("/categories", CategoryListHandler)

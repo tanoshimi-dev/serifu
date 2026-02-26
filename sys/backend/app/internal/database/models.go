@@ -133,9 +133,20 @@ type AdminUser struct {
 	PasswordHash string     `gorm:"not null"`
 	Role         string     `gorm:"default:admin"`
 	Status       string     `gorm:"default:active"`
+	TwoFASecret  string     `gorm:"column:two_fa_secret;default:''"`
+	TwoFAEnabled bool       `gorm:"column:two_fa_enabled;default:false"`
 	LastLoginAt  *time.Time
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+}
+
+type AdminRecoveryCode struct {
+	ID          uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	AdminUserID uuid.UUID  `gorm:"type:uuid;index;not null"`
+	CodeHash    string     `gorm:"not null"`
+	UsedAt      *time.Time
+	CreatedAt   time.Time
+	AdminUser   *AdminUser `gorm:"foreignKey:AdminUserID"`
 }
 
 type AdminAuditLog struct {
